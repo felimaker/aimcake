@@ -63,3 +63,6 @@ pnpm-debug.log*
 ehthumbs.db
 Thumbs.db
 [Dd]esktop.ini
+
+# Other
+DOC.md
