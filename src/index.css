@@ -1281,6 +1281,60 @@ input[type='range']::-webkit-slider-thumb:hover { transform: scale(1.18); }
 .btn-google svg { width: 18px; height: 18px; }
 .btn-google .spinner { color: hsl(222 30% 20%); }
 
+.acc-tag-optional {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text-faint);
+  letter-spacing: 0.02em;
+}
+
+.acc-info-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: hsl(220 20% 50% / 0.12);
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.2s;
+  vertical-align: middle;
+}
+.acc-info-icon-btn:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: hsl(142 88% 52% / 0.35);
+}
+.acc-info-icon-btn svg {
+  width: 12px;
+  height: 12px;
+}
+
+.acc-phone-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+.acc-phone-select {
+  width: 130px;
+  flex-shrink: 0;
+  padding: 0 10px;
+  font-size: 13px;
+  font-weight: 500;
+  background-color: hsl(222 25% 10%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  cursor: pointer;
+}
+.acc-phone-select:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
 /* Acceso */
 .acc-auth { display: grid; grid-template-columns: minmax(0, 1fr) minmax(380px, 460px); gap: 22px; align-items: stretch; max-width: 1080px; margin: 0 auto; }
 @media (max-width: 1180px) { .acc-auth { grid-template-columns: 1fr; } .acc-auth-hero { display: none; } }

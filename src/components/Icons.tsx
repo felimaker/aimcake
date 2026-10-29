@@ -170,4 +170,13 @@ export const IconMenu = (p: SVGProps<SVGSVGElement>) => (
     <line x1="4" y1="17" x2="20" y2="17" strokeWidth="2" strokeLinecap="round" />
   </svg>
 );
+export const IconInfo = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}>
+    <circle cx="12" cy="12" r="9" />
+    <line x1="12" y1="16" x2="12" y2="12" strokeWidth="2" strokeLinecap="round" />
+    <circle cx="12" cy="8" r="0.75" fill="currentColor" stroke="none" />
+  </svg>
+);
+
+
 

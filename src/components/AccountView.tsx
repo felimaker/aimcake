@@ -5,7 +5,7 @@ import { googleEnabled, type AuthIdentity } from '../services/authService';
 import DownloadCard from './DownloadCard';
 import { formatRemaining } from './LicenseStatus';
 import {
-  IconAlert, IconArrowRight, IconCake, IconCheck, IconEdit, IconEye, IconEyeOff, IconGift, IconGoogle, IconLink, IconLock, IconLogout,
+  IconAlert, IconArrowRight, IconCake, IconCheck, IconEdit, IconEye, IconEyeOff, IconGift, IconGoogle, IconInfo, IconLink, IconLock, IconLogout,
   IconMail, IconPhone, IconRefresh, IconShield, IconSpark, IconUnlink, IconUser, IconX,
 } from './Icons';
 
@@ -32,6 +32,18 @@ function strength(pw: string): { score: number; label: string } {
 
 const fmtDate = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' }) : '—');
 const fmtDateTime = (iso: string | null) => (iso ? new Date(iso).toLocaleString('es', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—');
+
+function parsePhone(raw: string, defaultPrefix: '+57' | '+1' = '+57'): { prefix: '+57' | '+1'; digits: string } {
+  const trimmed = raw.trim();
+  if (trimmed.startsWith('+57') || (trimmed.startsWith('57') && trimmed.replace(/\D/g, '').length > 10)) {
+    return { prefix: '+57', digits: trimmed.replace(/^\+?57/, '').replace(/\D/g, '').slice(0, 10) };
+  }
+  if (trimmed.startsWith('+1') || (trimmed.startsWith('1') && trimmed.replace(/\D/g, '').length > 10)) {
+    return { prefix: '+1', digits: trimmed.replace(/^\+?1/, '').replace(/\D/g, '').slice(0, 10) };
+  }
+  return { prefix: defaultPrefix, digits: trimmed.replace(/\D/g, '').slice(0, 10) };
+}
+
 
 function Avatar({ name, url, size = 72 }: { name: string; url: string | null; size?: number }) {
   const [broken, setBroken] = useState(false);
@@ -112,9 +124,24 @@ function AuthPanel({ auth, initialMode, bannerNotice, onGoLanding }: AuthPanelPr
   });
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
+  const [phonePrefix, setPhonePrefix] = useState<'+57' | '+1'>('+57');
+  const [phoneDigits, setPhoneDigits] = useState('');
+  const [showPhoneInfo, setShowPhoneInfo] = useState(false);
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
+
+  const cleanPhoneDigits = phoneDigits.replace(/\D/g, '');
+  const phoneHasValue = cleanPhoneDigits.length > 0;
+  const phoneIsValid = !phoneHasValue || cleanPhoneDigits.length === 10;
+  const phoneError = phoneHasValue && cleanPhoneDigits.length !== 10
+    ? `El número debe tener 10 dígitos (${phonePrefix === '+57' ? 'ej. 300 123 4567' : 'ej. 202 555 0123'}). Ingresaste ${cleanPhoneDigits.length}.`
+    : null;
+
+  const handlePhoneChange = (val: string) => {
+    const parsed = parsePhone(val, phonePrefix);
+    setPhonePrefix(parsed.prefix);
+    setPhoneDigits(parsed.digits);
+  };
 
   useEffect(() => {
     if (auth.isRecovery) setMode('recovery');
@@ -153,10 +180,13 @@ function AuthPanel({ auth, initialMode, bannerNotice, onGoLanding }: AuthPanelPr
     }
     if (mode === 'register') {
       if (password !== confirm) return;
-      if (await auth.signUp(email, password, name, phone)) {
+      if (!phoneIsValid) return;
+      const formattedPhone = phoneHasValue ? `${phonePrefix} ${cleanPhoneDigits}` : undefined;
+      if (await auth.signUp(email, password, name, formattedPhone)) {
         setPassword('');
         setConfirm('');
-        setPhone('');
+        setPhoneDigits('');
+        setMode('login');
       }
       return;
     }
@@ -237,23 +267,62 @@ function AuthPanel({ auth, initialMode, bannerNotice, onGoLanding }: AuthPanelPr
                 </div>
               </div>
               <div className="field">
-                <div className="row-between">
-                  <label htmlFor="auth-phone">Número de teléfono móvil (opcional)</label>
+                <div className="row-between" style={{ alignItems: 'center' }}>
+                  <label htmlFor="auth-phone" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, margin: 0 }}>
+                    <span>Número de teléfono móvil</span>
+                    <span className="acc-tag-optional">(Opcional)</span>
+                    <button
+                      type="button"
+                      className="acc-info-icon-btn"
+                      onClick={() => setShowPhoneInfo((s) => !s)}
+                      title="Ver información sobre el teléfono opcional"
+                      aria-label="Información sobre teléfono opcional"
+                    >
+                      <IconInfo />
+                    </button>
+                  </label>
                   <span className="chip ok xs"><IconGift /> +3 días gratis</span>
                 </div>
-                <div className="input-wrap">
-                  <IconPhone className="input-icon" />
-                  <input
-                    id="auth-phone"
-                    className="input with-icon"
-                    type="tel"
-                    autoComplete="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="+34 600 000 000"
-                  />
+
+                {showPhoneInfo && (
+                  <div className="alert info" style={{ padding: '8px 12px', fontSize: 12, margin: '4px 0' }}>
+                    <IconInfo />
+                    <span>
+                      <strong>Teléfono 100% opcional:</strong> No es obligatorio para registrarte ni para usar AimCake. Si decides incluirlo para recibir +3 días adicionales de prueba, actualmente solo se aceptan números móviles de <strong>Estados Unidos (+1)</strong> o <strong>Colombia (+57)</strong> de 10 dígitos.
+                    </span>
+                  </div>
+                )}
+
+                <div className="acc-phone-row">
+                  <select
+                    className="input acc-phone-select"
+                    value={phonePrefix}
+                    onChange={(e) => setPhonePrefix(e.target.value as '+57' | '+1')}
+                    aria-label="Código de país"
+                  >
+                    <option value="+57">🇨🇴 +57 (CO)</option>
+                    <option value="+1">🇺🇸 +1 (US)</option>
+                  </select>
+                  <div className="input-wrap" style={{ flex: 1 }}>
+                    <IconPhone className="input-icon" />
+                    <input
+                      id="auth-phone"
+                      className="input with-icon"
+                      type="tel"
+                      autoComplete="tel-national"
+                      value={phoneDigits}
+                      onChange={(e) => handlePhoneChange(e.target.value)}
+                      placeholder={phonePrefix === '+57' ? '300 123 4567' : '202 555 0123'}
+                      maxLength={14}
+                    />
+                  </div>
                 </div>
-                <small className="faint" style={{ fontSize: 11.5 }}>
+
+                {phoneError && (
+                  <span className="field-error" style={{ fontSize: 11.5 }}>{phoneError}</span>
+                )}
+
+                <small className="faint" style={{ fontSize: 11.5, display: 'block', marginTop: 2 }}>
                   Podrás verificarlo más tarde por SMS para desbloquear 3 días adicionales de prueba gratuita.
                 </small>
               </div>
@@ -288,7 +357,7 @@ function AuthPanel({ auth, initialMode, bannerNotice, onGoLanding }: AuthPanelPr
 
           <Messages auth={auth} />
 
-          <button id="auth-submit" type="submit" className="btn btn-primary btn-block btn-lg" disabled={busy || mismatch}>
+          <button id="auth-submit" type="submit" className="btn btn-primary btn-block btn-lg" disabled={busy || mismatch || (mode === 'register' && !phoneIsValid)}>
             {auth.pending && auth.pending !== 'google' ? <span className="spinner" /> : <IconArrowRight />}
             {mode === 'login' ? 'Entrar' : mode === 'register' ? 'Crear cuenta' : mode === 'recovery' ? 'Guardar contraseña' : 'Enviar enlace'}
           </button>
@@ -311,7 +380,9 @@ function AccountPanel({ auth, license, hwid, onGoLicense }: Props) {
   const [pw, setPw] = useState('');
   const [pw2, setPw2] = useState('');
   const [newEmail, setNewEmail] = useState('');
-  const [phoneDraft, setPhoneDraft] = useState(user.phone ?? '');
+  const [phoneDraftPrefix, setPhoneDraftPrefix] = useState<'+57' | '+1'>('+57');
+  const [phoneDraftDigits, setPhoneDraftDigits] = useState('');
+  const [showAccountPhoneInfo, setShowAccountPhoneInfo] = useState(false);
   const [showPhoneVerify, setShowPhoneVerify] = useState(false);
   const [smsCode, setSmsCode] = useState('');
   const [confirmUnlink, setConfirmUnlink] = useState<string | null>(null);
@@ -320,11 +391,27 @@ function AccountPanel({ auth, license, hwid, onGoLicense }: Props) {
   const [flashPw, setFlashPw] = useState(false);
 
   useEffect(() => { setNameDraft(user.name); }, [user.name]);
-  useEffect(() => { setPhoneDraft(user.phone ?? ''); }, [user.phone]);
+  useEffect(() => {
+    if (user.phone) {
+      const parsed = parsePhone(user.phone, '+57');
+      setPhoneDraftPrefix(parsed.prefix);
+      setPhoneDraftDigits(parsed.digits);
+    } else {
+      setPhoneDraftDigits('');
+    }
+  }, [user.phone]);
+
+  const cleanDraftDigits = phoneDraftDigits.replace(/\D/g, '');
+  const isDraftValid = cleanDraftDigits.length === 10;
+  const currentFormattedUserPhone = user.phone ? user.phone.replace(/\s+/g, '') : '';
+  const currentDraftFormatted = `${phoneDraftPrefix}${cleanDraftDigits}`;
+  const isDraftChanged = currentDraftFormatted !== currentFormattedUserPhone;
 
   const submitPhone = async (e: FormEvent) => {
     e.preventDefault();
-    if (await auth.updatePhone(phoneDraft)) setShowPhoneVerify(true);
+    if (!isDraftValid) return;
+    const fullPhone = `${phoneDraftPrefix} ${cleanDraftDigits}`;
+    if (await auth.updatePhone(fullPhone)) setShowPhoneVerify(true);
   };
 
   const submitVerifyCode = async () => {
@@ -572,30 +659,76 @@ function AccountPanel({ auth, license, hwid, onGoLicense }: Props) {
               </div>
             ) : (
               <div className="stack" style={{ gap: 12 }}>
-                <form className="row" style={{ gap: 10, alignItems: 'flex-end' }} onSubmit={submitPhone}>
-                  <div className="field" style={{ flex: 1 }}>
-                    <label htmlFor="acc-phone">Número de teléfono móvil</label>
-                    <div className="input-wrap">
-                      <IconPhone className="input-icon" />
-                      <input
-                        id="acc-phone"
-                        className="input with-icon"
-                        type="tel"
-                        value={phoneDraft}
-                        onChange={(e) => setPhoneDraft(e.target.value)}
-                        placeholder="+34 600 000 000"
-                        required
-                      />
+                <form className="stack" style={{ gap: 10 }} onSubmit={submitPhone}>
+                  <div className="field">
+                    <div className="row-between" style={{ alignItems: 'center' }}>
+                      <label htmlFor="acc-phone" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, margin: 0 }}>
+                        <span>Número de teléfono móvil</span>
+                        <span className="acc-tag-optional">(Opcional)</span>
+                        <button
+                          type="button"
+                          className="acc-info-icon-btn"
+                          onClick={() => setShowAccountPhoneInfo((s) => !s)}
+                          title="Ver información"
+                          aria-label="Información sobre teléfono opcional"
+                        >
+                          <IconInfo />
+                        </button>
+                      </label>
+                      <span className="chip ok xs"><IconGift /> +3 días gratis</span>
                     </div>
+
+                    {showAccountPhoneInfo && (
+                      <div className="alert info" style={{ padding: '8px 12px', fontSize: 12, margin: '4px 0' }}>
+                        <IconInfo />
+                        <span>
+                          Solo se admiten líneas móviles de <strong>Colombia (+57)</strong> o <strong>Estados Unidos (+1)</strong> de 10 dígitos.
+                        </span>
+                      </div>
+                    )}
+
+                    <div className="acc-phone-row" style={{ marginTop: 6 }}>
+                      <select
+                        className="input acc-phone-select"
+                        value={phoneDraftPrefix}
+                        onChange={(e) => setPhoneDraftPrefix(e.target.value as '+57' | '+1')}
+                        aria-label="Código de país"
+                      >
+                        <option value="+57">🇨🇴 +57 (CO)</option>
+                        <option value="+1">🇺🇸 +1 (US)</option>
+                      </select>
+                      <div className="input-wrap" style={{ flex: 1 }}>
+                        <IconPhone className="input-icon" />
+                        <input
+                          id="acc-phone"
+                          className="input with-icon"
+                          type="tel"
+                          value={phoneDraftDigits}
+                          onChange={(e) => {
+                            const parsed = parsePhone(e.target.value, phoneDraftPrefix);
+                            setPhoneDraftPrefix(parsed.prefix);
+                            setPhoneDraftDigits(parsed.digits);
+                          }}
+                          placeholder={phoneDraftPrefix === '+57' ? '300 123 4567' : '202 555 0123'}
+                          maxLength={14}
+                        />
+                      </div>
+                      <button
+                        id="acc-save-phone"
+                        type="submit"
+                        className="btn"
+                        disabled={!isDraftValid || !isDraftChanged || auth.pending !== null}
+                      >
+                        {auth.pending === 'phone' ? <span className="spinner" /> : <IconArrowRight />} Guardar
+                      </button>
+                    </div>
+
+                    {cleanDraftDigits.length > 0 && cleanDraftDigits.length !== 10 && (
+                      <span className="field-error" style={{ fontSize: 11.5 }}>
+                        El número debe tener 10 dígitos (tienes {cleanDraftDigits.length}).
+                      </span>
+                    )}
                   </div>
-                  <button
-                    id="acc-save-phone"
-                    type="submit"
-                    className="btn"
-                    disabled={!phoneDraft || phoneDraft === user.phone || auth.pending !== null}
-                  >
-                    {auth.pending === 'phone' ? <span className="spinner" /> : <IconArrowRight />} Guardar
-                  </button>
                 </form>
 
                 {user.phone && (
