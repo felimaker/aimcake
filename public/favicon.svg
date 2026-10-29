@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+  <defs>
+    <!-- Gradients -->
+    <linearGradient id="cakeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#22c55e" />
+      <stop offset="50%" stop-color="#10b981" />
+      <stop offset="100%" stop-color="#06b6d4" />
+    </linearGradient>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#111827" />
+      <stop offset="100%" stop-color="#030712" />
+    </linearGradient>
+    <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#22c55e" stop-opacity="0.8" />
+      <stop offset="50%" stop-color="#06b6d4" stop-opacity="0.5" />
+      <stop offset="100%" stop-color="#3b82f6" stop-opacity="0.2" />
+    </linearGradient>
+    <radialGradient id="cakeGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#22c55e" stop-opacity="0.35" />
+      <stop offset="100%" stop-color="#06b6d4" stop-opacity="0" />
+    </radialGradient>
+    <filter id="neonGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="3.5" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Ambient Glow Behind Icon -->
+  <circle cx="64" cy="64" r="50" fill="url(#cakeGlow)" />
+
+  <!-- Premium Squircle Container (App Icon aesthetic) -->
+  <rect x="6" y="6" width="116" height="116" rx="28" fill="url(#bgGrad)" stroke="url(#borderGrad)" stroke-width="2.5" />
+
+  <!-- Cake Figure / Geometric Icon -->
+  <g filter="url(#neonGlow)">
+    <!-- Flame / Spark on top -->
+    <path d="M64 22 C60 27 61 31 64 35 C67 31 68 27 64 22 Z" fill="#22c55e" />
+    <circle cx="64" cy="30" r="1.5" fill="#ecfdf5" />
+    <!-- Candle Wick -->
+    <line x1="64" y1="35" x2="64" y2="42" stroke="#6ee7b7" stroke-width="3" stroke-linecap="round" />
+
+    <!-- Tier 1 (Top Tier Pill) -->
+    <rect x="43" y="43" width="42" height="16" rx="8" fill="url(#cakeGrad)" />
+    <rect x="46" y="45" width="36" height="4" rx="2" fill="#ffffff" fill-opacity="0.3" />
+
+    <!-- Tier 2 (Middle Tier Pill) -->
+    <rect x="31" y="63" width="66" height="19" rx="9.5" fill="url(#cakeGrad)" />
+    <rect x="35" y="65" width="58" height="4" rx="2" fill="#ffffff" fill-opacity="0.25" />
+
+    <!-- Tier 3 (Base Tier Pill) -->
+    <rect x="19" y="86" width="90" height="23" rx="11.5" fill="url(#cakeGrad)" />
+    <rect x="24" y="88" width="80" height="5" rx="2.5" fill="#ffffff" fill-opacity="0.2" />
+  </g>
+</svg>

@@ -1,0 +1,60 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "AimCake",
+  "version": "1.0.0",
+  "identifier": "com.aimcake.virtualcontroller",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:1420",
+    "beforeDevCommand": "pnpm dev",
+    "beforeBuildCommand": "pnpm build"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "AimCake · Emulador de Mando 1000 Hz",
+        "width": 1280,
+        "height": 820,
+        "minWidth": 1080,
+        "minHeight": 700,
+        "center": true,
+        "resizable": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": ["aimcake", "xcb"]
+      }
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.ico"
+    ],
+    "resources": {
+      "resources/drivers/ViGEmBus_Setup.exe": "drivers/ViGEmBus_Setup.exe",
+      "resources/drivers/README.txt": "drivers/README.txt"
+    },
+    "windows": {
+      "certificateThumbprint": null,
+      "digestAlgorithm": "sha256",
+      "timestampUrl": "http://timestamp.digicert.com",
+      "nsis": {
+        "installMode": "perMachine",
+        "languages": ["Spanish", "English"],
+        "installerHooks": "./windows/hooks.nsh"
+      }
+    }
+  }
+}

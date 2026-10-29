@@ -1,0 +1,47 @@
+[package]
+name = "aimcake"
+version = "1.0.0"
+description = "AimCake · Emulador de Mando Virtual 1000 Hz con Aim Assist"
+authors = ["AimCake"]
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-opener = "2"
+tauri-plugin-deep-link = "2"
+tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Interacción con la API de Windows
+windows = { version = "0.58", features = [
+    "Win32_Foundation",
+    "Win32_Security",
+    "Win32_Graphics_Gdi",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_UI_Input",
+    "Win32_System_Threading",
+    "Win32_System_LibraryLoader",
+    "Win32_Media",
+    "Win32_Devices_HumanInterfaceDevice",
+    "Win32_Storage_FileSystem",
+] }
+
+# Driver ViGEmClient (la última versión publicada es la 0.1.x).
+# `unstable_ds4` habilita el mando virtual DualShock 4 además del Xbox 360.
+vigem-client = { version = "0.1.4", features = ["unstable_ds4"] }
+
+# Criptografía y Fingerprint HWID
+sha2 = "0.10"
+ed25519-dalek = "2.1"
+base64 = "0.22"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
