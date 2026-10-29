@@ -5,7 +5,7 @@ import { googleEnabled, type AuthIdentity } from '../services/authService';
 import DownloadCard from './DownloadCard';
 import { formatRemaining } from './LicenseStatus';
 import {
-  IconAlert, IconArrowRight, IconCake, IconCheck, IconEdit, IconEye, IconEyeOff, IconGift, IconGoogle, IconInfo, IconLink, IconLock, IconLogout,
+  IconAlert, IconArrowRight, IconBolt, IconCake, IconCheck, IconEdit, IconEye, IconEyeOff, IconGift, IconGoogle, IconInfo, IconLink, IconLock, IconLogout,
   IconMail, IconPhone, IconRefresh, IconShield, IconSpark, IconUnlink, IconUser, IconX,
 } from './Icons';
 
@@ -195,10 +195,10 @@ function AuthPanel({ auth, initialMode, bannerNotice, onGoLanding }: AuthPanelPr
 
   const busy = auth.pending !== null;
   const titles = {
-    login: ['Bienvenido a AimCake', 'Inicia sesión para validar tu licencia y perfiles'],
-    register: ['Crea tu cuenta AimCake', 'Incluye 3 días de prueba Pro gratuita en este equipo'],
-    reset: ['Recuperar contraseña', 'Te enviaremos un enlace oficial a tu correo'],
-    recovery: ['Restablecer contraseña', 'Introduce y confirma tu nueva contraseña segura'],
+    login: ['Bienvenido a AimCake', 'Inicia sesión para activar tu Aim Assist y perfiles'],
+    register: ['Crea tu cuenta AimCake', 'Prueba gratis de 3 días de Aim Assist para mouse y teclado'],
+    reset: ['Recuperar contraseña', 'Te enviaremos las instrucciones a tu correo'],
+    recovery: ['Restablecer contraseña', 'Introduce tu nueva contraseña para continuar'],
   }[mode];
 
   return (
@@ -206,19 +206,19 @@ function AuthPanel({ auth, initialMode, bannerNotice, onGoLanding }: AuthPanelPr
       <aside className="acc-auth-hero">
         <div className="acc-auth-orb" />
         <div className="row-between" style={{ width: '100%', marginBottom: 12 }}>
-          <span className="acc-eyebrow"><IconCake /> Cuenta AimCake</span>
+          <span className="acc-eyebrow"><IconCake /> AimCake</span>
           {onGoLanding && (
             <button id="auth-go-landing" type="button" className="btn btn-sm btn-ghost" onClick={onGoLanding} style={{ fontSize: 12 }}>
               ← Web Oficial
             </button>
           )}
         </div>
-        <h2>Una sola cuenta,<br /><span className="grad-text">máximo rendimiento.</span></h2>
-        <p>Tu licencia y perfiles quedan sincronizados con tu cuenta y tu hardware. Accede con Google o tu correo con autenticación criptográfica segura.</p>
+        <h2>Aim Assist real para<br /><span className="grad-text">mouse y teclado.</span></h2>
+        <p>AimCake permite a los jugadores de mouse y teclado disfrutar de la ayuda de tiro (Aim Assist) en sus juegos favoritos, manteniendo toda la velocidad y puntería de su mouse.</p>
         <ul className="acc-benefits">
-          <li><span><IconGoogle /></span><div><strong>Acceso rápido con Google</strong><small>Inicio de sesión en un clic con OAuth seguro</small></div></li>
-          <li><span><IconLink /></span><div><strong>Cuentas vinculadas</strong><small>Combina Google y correo + contraseña en un solo perfil</small></div></li>
-          <li><span><IconShield /></span><div><strong>Licencia protegida HWID</strong><small>Token criptográfico firmado con curvas Ed25519</small></div></li>
+          <li><span><IconBolt /></span><div><strong>Aim Assist en Mouse y Teclado</strong><small>Asistencia de apuntado nativa jugando con tu setup habitual</small></div></li>
+          <li><span><IconGift /></span><div><strong>3 Días de Prueba Gratis</strong><small>Prueba todas las funciones de inmediato sin tarjeta ni pagos</small></div></li>
+          <li><span><IconSpark /></span><div><strong>Perfiles y Ajustes Listos</strong><small>Configuraciones preparadas para empezar a jugar al instante</small></div></li>
         </ul>
         <div style={{ marginTop: 20 }}>
           <DownloadCard compact onRequireLogin={() => switchMode('register')} />
@@ -518,7 +518,7 @@ function AccountPanel({ auth, license, hwid, onGoLicense }: Props) {
           <button id="acc-license-card" className={`acc-license ${lPro ? 'pro' : lActive ? 'trial' : 'none'}`} onClick={onGoLicense}>
             <span className="acc-license-label">Licencia vinculada</span>
             <strong>{lPro ? 'Pro activa' : lActive ? `Prueba · ${formatRemaining(lp!.expires_at - now)}` : 'Sin licencia'}</strong>
-            <small>{hwid ? `Equipo ${hwid.slice(0, 8)}…${hwid.slice(-4)}` : 'Calculando HWID…'}</small>
+            <small>{hwid ? 'Equipo vinculado' : 'Conectando equipo…'}</small>
             <span className="acc-license-go">Gestionar <IconArrowRight /></span>
           </button>
         </div>
@@ -843,7 +843,7 @@ export function EmailVerificationBarrier({ auth, onGoLanding }: { auth: AuthStat
           <strong style={{ color: 'var(--accent)', fontSize: 16 }}>{auth.user?.email}</strong>
         </p>
         <p className="faint" style={{ fontSize: 13.5, lineHeight: 1.6, maxWidth: 440, margin: '0 auto 16px' }}>
-          Para desbloquear la emulación a 1000 Hz, los perfiles de mando y proteger tu acceso, haz clic en el enlace que enviamos a tu bandeja de entrada o spam.
+          Para activar tu Aim Assist en mouse y teclado y acceder a tus perfiles, haz clic en el enlace que enviamos a tu bandeja de entrada o spam.
         </p>
 
         <Messages auth={auth} />

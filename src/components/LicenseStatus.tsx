@@ -95,10 +95,10 @@ export default function LicenseStatus({ hwid, license, isDebug, onGoAccount, acc
               </h3>
               <p className="faint" style={{ margin: 0, lineHeight: 1.55 }}>
                 {isActive
-                  ? `Token firmado (Ed25519) válido hasta ${new Date(p!.expires_at * 1000).toLocaleString()}. Se renueva automáticamente al abrir la app.`
+                  ? `Licencia activa válida hasta ${new Date(p!.expires_at * 1000).toLocaleString()}. Se renueva automáticamente al abrir la app.`
                   : isTrial
-                    ? `Tu prueba termina el ${new Date(p!.expires_at * 1000).toLocaleString()}. Suscríbete para seguir usando el emulador.`
-                    : 'Cada equipo obtiene una única prueba gratuita de 3 días vinculada a su huella de hardware.'}
+                    ? `Tu prueba termina el ${new Date(p!.expires_at * 1000).toLocaleString()}. Suscríbete para seguir usando AimCake.`
+                    : 'Cada equipo obtiene una prueba gratuita de 3 días para disfrutar de Aim Assist en mouse y teclado.'}
               </p>
               {license.session ? (
                 <span className="faint">Sesión: <strong className="muted">{license.session.user.email}</strong></span>
@@ -109,7 +109,7 @@ export default function LicenseStatus({ hwid, license, isDebug, onGoAccount, acc
           </div>
           <hr className="divider" />
           <div className="field">
-            <label>Huella de hardware (HWID · SHA-256)</label>
+            <label>Identificador de tu equipo</label>
             <div className="hwid-box">
               <IconShield style={{ width: 18, color: 'var(--accent)' }} />
               <code title={hwid}>{hwid || 'Calculando…'}</code>
