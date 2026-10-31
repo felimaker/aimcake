@@ -1,8 +1,94 @@
 -- =====================================================================
--- AimCake · Sistema de Roles, SuperAdmin y Gestión de Licencias
+-- AimCake · Esquema Completo: Licencias, Roles y Panel SuperAdmin
 -- =====================================================================
 
--- 1. Tabla de roles de usuario
+-- ---------------------------------------------------------------------
+-- 1. TABLA DE LICENCIAS Y VALIDACIÓN DE DISPOSITIVOS
+-- ---------------------------------------------------------------------
+create table if not exists public.licenses (
+    id uuid primary key default gen_random_uuid(),
+    user_id uuid references auth.users(id) on delete cascade,
+    hwid text not null unique,
+    status text not null default 'trial' check (status in ('trial', 'active', 'expired')),
+    trial_start_at timestamptz not null default now(),
+    trial_end_at timestamptz not null default (now() + interval '3 days'),
+    stripe_customer_id text,
+    stripe_subscription_id text,
+    current_period_end timestamptz,
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now()
+);
+
+create index if not exists licenses_user_id_idx on public.licenses (user_id);
+create index if not exists licenses_subscription_idx on public.licenses (stripe_subscription_id);
+
+alter table public.licenses enable row level security;
+
+drop policy if exists "Lectura de usuario para su propia licencia" on public.licenses;
+create policy "Lectura de usuario para su propia licencia"
+    on public.licenses for select
+    using (auth.uid() = user_id);
+
+create or replace function public.register_or_validate_device(device_hwid text)
+returns json
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+    v_license public.licenses%rowtype;
+    v_now timestamptz := now();
+    v_uid uuid := auth.uid();
+begin
+    if v_uid is null then
+        return json_build_object('allowed', false, 'reason', 'Debes iniciar sesión.');
+    end if;
+
+    if device_hwid is null or length(device_hwid) <> 64 then
+        return json_build_object('allowed', false, 'reason', 'HWID inválido.');
+    end if;
+
+    select * into v_license from public.licenses where hwid = device_hwid;
+
+    if not found then
+        insert into public.licenses (user_id, hwid, status, trial_start_at, trial_end_at)
+        values (v_uid, device_hwid, 'trial', v_now, v_now + interval '3 days')
+        returning * into v_license;
+    else
+        if v_license.user_id is distinct from v_uid then
+            return json_build_object('allowed', false, 'reason', 'HWID ya registrado con otra cuenta.');
+        end if;
+    end if;
+
+    if v_license.status = 'active'
+       and (v_license.current_period_end is null or v_license.current_period_end > v_now) then
+        return json_build_object(
+            'allowed', true,
+            'status', 'active',
+            'expires_at', coalesce(extract(epoch from v_license.current_period_end)::bigint, 9999999999)
+        );
+    elsif v_license.status = 'trial' and v_license.trial_end_at > v_now then
+        return json_build_object(
+            'allowed', true,
+            'status', 'trial',
+            'expires_at', extract(epoch from v_license.trial_end_at)::bigint
+        );
+    else
+        if v_license.status = 'trial' then
+            update public.licenses set status = 'expired', updated_at = v_now where id = v_license.id;
+            return json_build_object('allowed', false, 'reason', 'El periodo de prueba de 3 dias ha expirado.');
+        end if;
+        return json_build_object('allowed', false, 'reason', 'Tu suscripción no está activa.');
+    end if;
+end;
+$$;
+
+revoke all on function public.register_or_validate_device(text) from public, anon;
+grant execute on function public.register_or_validate_device(text) to authenticated;
+
+-- ---------------------------------------------------------------------
+-- 2. TABLA DE ROLES Y VERIFICACIÓN DE SUPERADMIN
+-- ---------------------------------------------------------------------
 create table if not exists public.user_roles (
     id uuid primary key default gen_random_uuid(),
     user_id uuid references auth.users(id) on delete cascade unique,
@@ -13,13 +99,11 @@ create table if not exists public.user_roles (
 
 alter table public.user_roles enable row level security;
 
--- Política: El usuario puede ver su propio rol
 drop policy if exists "Usuarios pueden ver su propio rol" on public.user_roles;
 create policy "Usuarios pueden ver su propio rol"
     on public.user_roles for select
     using (auth.uid() = user_id);
 
--- Función segura para verificar si el usuario actual es SuperAdmin
 create or replace function public.is_super_admin()
 returns boolean
 language sql
@@ -33,7 +117,6 @@ as $$
     );
 $$;
 
--- 2. Función RPC para que la UI consulte si el usuario logueado es SuperAdmin
 create or replace function public.check_is_super()
 returns boolean
 language plpgsql
@@ -47,8 +130,9 @@ $$;
 
 grant execute on function public.check_is_super() to authenticated;
 
--- 3. Función RPC para listar todos los usuarios con sus licencias y días restantes
--- Solo puede ser ejecutada si is_super_admin() es true
+-- ---------------------------------------------------------------------
+-- 3. FUNCIONES EXCLUSIVAS DE SUPERADMIN (LISTAR Y MODIFICAR USUARIOS)
+-- ---------------------------------------------------------------------
 create or replace function public.admin_get_users()
 returns table (
     user_id uuid,
@@ -109,7 +193,6 @@ $$;
 
 grant execute on function public.admin_get_users() to authenticated;
 
--- 4. Función RPC para añadir o modificar días de suscripción / prueba a un usuario
 create or replace function public.admin_adjust_user_days(
     target_user_id uuid,
     days_to_add integer,
@@ -131,7 +214,6 @@ begin
     select * into v_license from public.licenses where user_id = target_user_id limit 1;
 
     if not found then
-        -- Si el usuario no tiene registro de licencia aún, creamos uno
         insert into public.licenses (
             user_id,
             hwid,
@@ -150,7 +232,6 @@ begin
         )
         returning * into v_license;
     else
-        -- Si ya existe la licencia, calcular la nueva fecha sumando días desde el final actual o desde ahora si expiró
         if v_license.status = 'active' and v_license.current_period_end is not null and v_license.current_period_end > now() then
             v_new_end := v_license.current_period_end + (days_to_add || ' days')::interval;
         elsif v_license.status = 'trial' and v_license.trial_end_at is not null and v_license.trial_end_at > now() then
