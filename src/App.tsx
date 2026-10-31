@@ -6,11 +6,12 @@ import LiveController from './components/LiveController';
 import MappingView from './components/MappingView';
 import ProfilesView, { type EditTarget } from './components/ProfilesView';
 import SetupChecklist from './components/SetupChecklist';
+import SuperAdminView from './components/SuperAdminView';
 import LandingPage from './components/LandingPage';
 import DesktopRequiredBanner from './components/DesktopRequiredBanner';
 import LicenseStatus, { formatRemaining } from './components/LicenseStatus';
 import {
-  IconAlert, IconBolt, IconCheck, IconChevron, IconChip, IconCurve, IconDashboard, IconDevices, IconDownload, IconEdit,
+  IconAlert, IconBolt, IconCheck, IconChevron, IconChip, IconCrown, IconCurve, IconDashboard, IconDevices, IconDownload, IconEdit,
   IconGamepad, IconKeyboard, IconLayers, IconMouse, IconPause, IconPlay, IconPower, IconShield, IconSpark, IconUser,
 } from './components/Icons';
 import { useAuth } from './hooks/useAuth';
@@ -23,7 +24,7 @@ import { bridge, isTauri } from './services/tauriBridge';
 import type { ControllerType, EngineSettings, EngineStatus, GamepadSnapshot, InputDevice, Profile, ProfileStore } from './types';
 import { EMPTY_SNAPSHOT } from './types';
 
-type View = 'landing' | 'dashboard' | 'profiles' | 'mapping' | 'curve' | 'devices' | 'license' | 'account';
+type View = 'landing' | 'dashboard' | 'profiles' | 'mapping' | 'curve' | 'devices' | 'license' | 'account' | 'superadmin';
 
 interface Toast { id: number; kind: 'error' | 'success' | 'info'; text: string }
 
@@ -270,6 +271,7 @@ export default function App() {
     { id: 'devices', label: 'Dispositivos', icon: <IconDevices /> },
     { id: 'license', label: 'Licencia', icon: <IconShield /> },
     { id: 'account', label: 'Cuenta', icon: <IconUser /> },
+    ...(auth.user?.isSuper ? [{ id: 'superadmin' as View, label: 'SuperAdmin', icon: <IconCrown style={{ color: '#f59e0b' }} />, badge: 'SUPER' }] : []),
     { id: 'landing', label: 'Web Oficial', icon: <IconSpark />, badge: 'WEB' },
   ];
 
@@ -282,6 +284,7 @@ export default function App() {
     devices: ['Dispositivos', 'Elige el mando a emular, un teclado y un ratón'],
     license: ['Licencia y suscripción', 'Prueba gratuita de 3 días por equipo · Suscripción con Stripe'],
     account: ['Cuenta AimCake', 'Gestiona tu acceso: correo, contraseña y Google vinculados a una misma cuenta'],
+    superadmin: ['Consola SuperAdmin', 'Gestión global de usuarios registrados, monitoreo de licencias y días de suscripción'],
   };
 
   const hzFraction = Math.min(snapshot.hz / settings.pollingHz, 1);
@@ -542,6 +545,7 @@ export default function App() {
           )}
           {view === 'license' && <LicenseStatus hwid={hwid} license={license} isDebug={status?.isDebug ?? !isTauri} onGoAccount={() => setView('account')} accountEmail={auth.user?.email} />}
           {view === 'account' && <AccountView auth={auth} license={license} hwid={hwid} onGoLicense={() => setView('license')} />}
+          {view === 'superadmin' && auth.user?.isSuper && <SuperAdminView toast={toast} />}
         </div>
       </main>
 

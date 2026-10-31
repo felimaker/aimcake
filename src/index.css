@@ -2867,5 +2867,135 @@ input[type='range']::-webkit-slider-thumb:hover { transform: scale(1.18); }
   width: 100%;
 }
 
-
-
+/* ================================================================
+   SuperAdmin Dashboard & Table Styles
+   ================================================================ */
+.superadmin-banner {
+  background: linear-gradient(135deg, hsl(38 92% 50% / 0.08) 0%, hsl(222 24% 10% / 0.8) 100%);
+  border: 1px solid hsl(38 92% 50% / 0.25);
+  position: relative;
+  overflow: hidden;
+}
+.superadmin-banner::before {
+  content: '';
+  position: absolute;
+  top: -50px;
+  right: -50px;
+  width: 180px;
+  height: 180px;
+  background: radial-gradient(circle, hsl(38 92% 50% / 0.15) 0%, transparent 70%);
+  pointer-events: none;
+}
+.superadmin-badge-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: hsl(38 92% 50% / 0.14);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid hsl(38 92% 50% / 0.3);
+}
+.super-stat-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.superadmin-table-card {
+  padding: 0;
+  overflow: hidden;
+}
+.superadmin-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+.superadmin-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 13.5px;
+}
+.superadmin-table th {
+  padding: 12px 18px;
+  background: hsl(222 24% 8% / 0.9);
+  color: var(--text-dim);
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--border);
+}
+.superadmin-table td {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.superadmin-table tr:hover td {
+  background: hsl(222 20% 13% / 0.4);
+}
+.superadmin-table tr.selected-row td {
+  background: hsl(38 92% 50% / 0.06);
+}
+.user-initials-badge {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: var(--surface-strong);
+  border: 1px solid var(--border-strong);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text);
+  flex-shrink: 0;
+}
+.days-left-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.detailed-user-card {
+  border: 1px solid hsl(142 88% 52% / 0.25);
+  background: hsl(222 22% 10% / 0.9);
+}
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+.detail-item .faint {
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.superadmin-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+.superadmin-modal {
+  width: 100%;
+  max-width: 480px;
+  border: 1px solid hsl(38 92% 50% / 0.35);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+  animation: modalPop 0.2s ease-out;
+}
+@keyframes modalPop {
+  from { opacity: 0; transform: scale(0.96) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}

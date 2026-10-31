@@ -37,6 +37,8 @@ export interface AuthUser {
   identities: AuthIdentity[];
   /** Tiene contraseña (identidad `email` o contraseña añadida a una cuenta Google). */
   hasPassword: boolean;
+  /** Es SuperAdmin con permisos de gestión global */
+  isSuper?: boolean;
 }
 
 export const googleEnabled = (import.meta.env.VITE_GOOGLE_AUTH_ENABLED ?? 'true') !== 'false';
@@ -145,15 +147,34 @@ class SupabaseAuth implements AuthApi {
   readonly mode = 'supabase' as const;
   private get sb() { return supabase!; }
 
+  async isSuper(): Promise<boolean> {
+    try {
+      const { data, error } = await this.sb.rpc('check_is_super');
+      return !error && Boolean(data);
+    } catch {
+      return false;
+    }
+  }
+
   async current() {
     const { data } = await this.sb.auth.getSession();
     if (!data.session) return null;
     const { data: u } = await this.sb.auth.getUser();
-    return u.user ? toAuthUser(u.user) : toAuthUser(data.session.user);
+    const user = u.user ? toAuthUser(u.user) : toAuthUser(data.session.user);
+    user.isSuper = await this.isSuper();
+    return user;
   }
 
   subscribe(cb: (u: AuthUser | null, event?: string) => void) {
-    const { data } = this.sb.auth.onAuthStateChange((e, s) => cb(s?.user ? toAuthUser(s.user) : null, e));
+    const { data } = this.sb.auth.onAuthStateChange(async (e, s) => {
+      if (!s?.user) {
+        cb(null, e);
+        return;
+      }
+      const user = toAuthUser(s.user);
+      user.isSuper = await this.isSuper();
+      cb(user, e);
+    });
     return () => data.subscription.unsubscribe();
   }
 
