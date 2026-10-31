@@ -65,9 +65,12 @@ impl DeviceFilter {
     pub fn allows(&self, kind_is_mouse: bool, id: Option<&str>) -> bool {
         let set = if kind_is_mouse { &self.mice } else { &self.keyboards };
         if set.is_empty() {
-            return true;
+            // Si el perfil no tiene ningún dispositivo asignado, no permite ninguno
+            // para evitar mezclas con periféricos secundarios.
+            return false;
         }
-        id.map(|i| set.contains(i)).unwrap_or(false)
+        let Some(dev_id) = id else { return false };
+        set.contains(dev_id)
     }
 }
 

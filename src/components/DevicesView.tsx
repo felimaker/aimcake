@@ -179,11 +179,11 @@ export default function DevicesView({ settings, onChange, toast }: Props) {
 
       <div className="row-between">
         <p className="muted" style={{ margin: 0, maxWidth: 760 }}>
-          Elige <strong style={{ color: 'var(--text)' }}>un teclado y un ratón</strong> de la lista: solo ellos controlan el mando en este perfil.
-          Pulsa una tecla o mueve el ratón y verás su <strong style={{ color: 'var(--accent)' }}>indicador de actividad</strong> encenderse para identificarlo.
+          Selecciona <strong style={{ color: 'var(--text)' }}>exactamente un teclado y un ratón exclusivos</strong>. 
+          Solo estos dos dispositivos controlarán el mando emulado; cualquier otro teclado o ratón secundario conectado a la PC seguirá funcionando de forma independiente en Windows sin interferir en el juego.
         </p>
         <button id="devices-refresh" className="btn btn-sm" onClick={refresh} disabled={loading}>
-          {loading ? <span className="spinner" /> : <IconRefresh />} Actualizar
+          {loading ? <span className="spinner" /> : <IconRefresh />} Actualizar lista
         </button>
       </div>
       <div className="grid grid-2">
@@ -193,9 +193,8 @@ export default function DevicesView({ settings, onChange, toast }: Props) {
       <div className="alert info">
         <IconAlert />
         <span>
-          El filtro decide qué dispositivos <strong>controlan el mando</strong>. Con «Bloquear teclas mapeadas» activo, Windows
-          oculta esas teclas al juego en <strong>todos</strong> los teclados: el bloqueo por dispositivo requiere un driver de filtro
-          (como el que usa reWASD) y no está incluido.
+          <strong>Aislamiento estricto activado:</strong> La emulación solo responderá a las entradas del ratón y teclado elegidos arriba.
+          El monitor en vivo en la bandeja del sistema (junto al reloj de Windows) te indicará en todo momento si el sistema está activo o en pausa.
         </span>
       </div>
     </div>

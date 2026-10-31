@@ -222,6 +222,16 @@ fn start_emulation(
         }
     }
 
+    {
+        let settings = state.shared.snapshot();
+        if settings.keyboards.is_empty() || settings.mice.is_empty() {
+            return Err("Debes seleccionar exactamente un teclado y un ratón en la sección 'Dispositivos' antes de iniciar.".into());
+        }
+        if settings.controller.is_none() {
+            return Err("Debes seleccionar un mando a emular (Xbox 360, Xbox One o DualShock 4).".into());
+        }
+    }
+
     let mut worker = state.worker.lock().map_err(|_| "Estado del worker bloqueado.")?;
     if worker.is_running() {
         return Err("La emulación ya está en ejecución.".into());
@@ -276,10 +286,65 @@ fn main() {
             let handle = app.handle().clone();
             let state = app.state::<AppState>();
             if let Ok(mut capture) = state.capture.lock() {
-                if let Err(e) = capture.start(state.shared.clone(), handle) {
+                if let Err(e) = capture.start(state.shared.clone(), handle.clone()) {
                     capture.error = Some(e);
                 }
             }
+
+            // Bandeja del sistema (System Tray junto al reloj de Windows)
+            use tauri::menu::{Menu, MenuItem};
+            use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
+
+            let show_i = MenuItem::with_id(app, "show", "Abrir AimCake", true, None::<&str>)?;
+            let hide_i = MenuItem::with_id(app, "hide", "Ocultar ventana", true, None::<&str>)?;
+            let sep = tauri::menu::PredefinedMenuItem::separator(app)?;
+            let quit_i = MenuItem::with_id(app, "quit", "Salir de AimCake", true, None::<&str>)?;
+            let menu = Menu::with_items(app, &[&show_i, &hide_i, &sep, &quit_i])?;
+
+            let _tray = TrayIconBuilder::new()
+                .menu(&menu)
+                .tooltip("AimCake · Emulador de Mando 1000 Hz")
+                .icon(app.default_window_icon().unwrap().clone())
+                .on_menu_event(|app, event| match event.id.as_ref() {
+                    "show" => {
+                        if let Some(w) = app.get_webview_window("main") {
+                            let _ = w.show();
+                            let _ = w.unminimize();
+                            let _ = w.set_focus();
+                        }
+                    }
+                    "hide" => {
+                        if let Some(w) = app.get_webview_window("main") {
+                            let _ = w.hide();
+                        }
+                    }
+                    "quit" => {
+                        app.state::<AppState>().shutdown();
+                        app.exit(0);
+                    }
+                    _ => {}
+                })
+                .on_tray_icon_event(|tray, event| {
+                    if let TrayIconEvent::Click {
+                        button: MouseButton::Left,
+                        button_state: MouseButtonState::Up,
+                        ..
+                    } = event
+                    {
+                        let app = tray.app_handle();
+                        if let Some(w) = app.get_webview_window("main") {
+                            if w.is_visible().unwrap_or(false) {
+                                let _ = w.hide();
+                            } else {
+                                let _ = w.show();
+                                let _ = w.unminimize();
+                                let _ = w.set_focus();
+                            }
+                        }
+                    }
+                })
+                .build(app)?;
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -299,8 +364,11 @@ fn main() {
         .expect("Error al inicializar la aplicación");
 
     app.run(|handle, event| {
-        if let RunEvent::Exit = event {
-            handle.state::<AppState>().shutdown();
+        match event {
+            RunEvent::Exit => {
+                handle.state::<AppState>().shutdown();
+            }
+            _ => {}
         }
     });
 }

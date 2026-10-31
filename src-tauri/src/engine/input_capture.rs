@@ -151,14 +151,6 @@ unsafe extern "system" fn keyboard_hook(code: i32, wparam: WPARAM, lparam: LPARA
                     && !shared.paused.load(Ordering::Relaxed)
                     && shared.mapped_keys.read().map(|s| s.contains(&vk_code)).unwrap_or(false);
 
-                // Si no hay filtro de teclado, reenviar la tecla bloqueada directamente al
-                // worker para no depender del orden hook/Raw Input.
-                if block {
-                    let no_filter = shared.device_filter.read().map(|f| f.keyboards.is_empty()).unwrap_or(true);
-                    if no_filter {
-                        shared.dispatch(RawEvent::KeyAction { vk_code, is_down });
-                    }
-                }
                 block
             });
             if block {
