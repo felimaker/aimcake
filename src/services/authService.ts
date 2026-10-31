@@ -40,8 +40,7 @@ export interface AuthUser {
 }
 
 export const googleEnabled = (import.meta.env.VITE_GOOGLE_AUTH_ENABLED ?? 'true') !== 'false';
-export const SUPABASE_CALLBACK_URL = (import.meta.env.VITE_AUTH_CALLBACK_URL as string | undefined)?.trim()
-  || 'https://auth.aimcake.com/auth/v1/callback';
+export const SUPABASE_CALLBACK_URL = 'https://sknefafurgurmqgjzgfn.supabase.co/auth/v1/callback';
 
 function redirectUrl() {
   if (isTauri) {
