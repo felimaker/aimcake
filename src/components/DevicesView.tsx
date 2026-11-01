@@ -4,7 +4,7 @@ import { keyName } from '../lib/keys';
 import { CONTROLLER_BY_ID } from '../lib/controllers';
 import { bridge } from '../services/tauriBridge';
 import ControllerPicker from './ControllerPicker';
-import { IconAlert, IconCheck, IconGamepad, IconKeyboard, IconMouse, IconRadar, IconRefresh } from './Icons';
+import { IconAlert, IconCheck, IconGamepad, IconKeyboard, IconMouse, IconRadar, IconRefresh, IconShield } from './Icons';
 
 interface Props {
   settings: EngineSettings;
@@ -254,11 +254,39 @@ export default function DevicesView({ settings, onChange, toast }: Props) {
         {column('mouse')}
       </div>
 
-      <div className="alert info">
-        <IconAlert />
-        <span>
-          <strong>Aislamiento estricto activado:</strong> {chosenMouse ? `Aim Assist solo responderá a las entradas de «${chosenMouse.name}». Las demás fuentes de ratón permanecen aisladas para garantizar cero interferencias.` : 'Selecciona un ratón arriba para activar el filtro de aislamiento.'}
-        </span>
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 16,
+        padding: '16px 20px',
+        borderRadius: 16,
+        background: 'linear-gradient(135deg, hsl(142 88% 52% / 0.08) 0%, hsl(222 24% 8% / 0.95) 100%)',
+        border: '1px solid hsl(142 88% 52% / 0.3)',
+        boxShadow: '0 8px 24px -6px hsl(142 88% 52% / 0.15)',
+      }}>
+        <div style={{
+          width: 42,
+          height: 42,
+          borderRadius: 12,
+          display: 'grid',
+          placeItems: 'center',
+          background: 'hsl(142 88% 52% / 0.15)',
+          color: 'var(--accent)',
+          border: '1px solid hsl(142 88% 52% / 0.3)',
+          flexShrink: 0,
+        }}>
+          <IconShield style={{ width: 22, height: 22 }} />
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <strong style={{ fontSize: 14.5, color: 'var(--text)' }}>
+            Filtro de Aislamiento Activo (1 Ratón + 1 Teclado)
+          </strong>
+          <span className="faint" style={{ fontSize: 13 }}>
+            {chosenMouse
+              ? `Aim Assist solo responde a las entradas de «${chosenMouse.name}». Las demás fuentes de ratón (como el Touchpad) quedan aisladas para garantizar cero interferencias durante el juego.`
+              : 'Selecciona tu ratón arriba para activar el filtro de aislamiento 1:1.'}
+          </span>
+        </div>
       </div>
     </div>
   );
