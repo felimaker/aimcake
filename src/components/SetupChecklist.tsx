@@ -5,7 +5,7 @@ import { isMouseInput } from '../lib/keys';
 import { bridge, isTauri } from '../services/tauriBridge';
 import {
   IconArrowRight, IconCheck, IconChip, IconCpu, IconCurve, IconDownload,
-  IconGamepad, IconKeyboard, IconLayers, IconMouse, IconRefresh, IconShield, IconSpark
+  IconGamepad, IconKeyboard, IconLayers, IconMouse, IconRefresh, IconSpark
 } from './Icons';
 
 export type StepNum = 1 | 2 | 3 | 4 | 5;
@@ -30,54 +30,49 @@ interface InstallablePackage {
   fileName: string;
   fileSize: string;
   downloadUrl: string;
-  description: string;
-  whyRequired: string;
+  benefit: string;
 }
 
 const INSTALLABLE_PACKAGES: InstallablePackage[] = [
   {
     id: 'vigembus',
-    name: 'Driver Kernel ViGEmBus (Virtual Gamepad Bus)',
-    badge: 'WHQL Microsoft',
+    name: 'Mando Virtual AimCake',
+    badge: 'Mando Virtual',
     badgeType: 'ok',
     fileName: 'AimCake_bigembus.exe',
     fileSize: '~6.3 MB',
     downloadUrl: '/downloads/AimCake_bigembus.exe',
-    description: 'Controlador oficial certificado en modo kernel de Windows. Crea el gamepad virtual Xbox 360 / DualShock 4 que los juegos detectan a nivel de hardware para activar el Aim Assist nativo.',
-    whyRequired: 'Obligatorio para que Windows reconozca el mando virtual.',
+    benefit: 'Activa el Aim Assist original en tus juegos simulando un mando real en tu PC.',
   },
   {
     id: 'aimcake_drivers',
-    name: 'AimCake Driver Suite & Device Isolator',
-    badge: 'Driver Oficial AimCake',
+    name: 'Aislamiento de Periféricos AimCake',
+    badge: 'Sin Doble Cursor',
     badgeType: 'ok',
     fileName: 'AimCake_drivers.exe',
     fileSize: '~6.3 MB',
     downloadUrl: '/downloads/aimcake_drivers.exe',
-    description: 'Filtro de aislamiento de hardware y captura Raw Input. Aísla exclusivamente el teclado y ratón seleccionados para emular el mando sin doble puntero ni conflicto de cursores en Windows.',
-    whyRequired: 'Evita colisiones de puntero y habilita polling a 1000 Hz.',
+    benefit: 'Elimina el doble cursor en pantalla y garantiza respuesta inmediata de 1 ms.',
   },
   {
     id: 'vcredist',
-    name: 'Microsoft Visual C++ 2015-2022 Redistributable (x64)',
-    badge: 'Runtime Oficial Microsoft',
+    name: 'Librerías de Sistema (Visual C++)',
+    badge: 'Compatibilidad',
     badgeType: 'info',
     fileName: 'AimCake_vcredist.exe',
     fileSize: '~25.6 MB',
     downloadUrl: '/downloads/AimCake_vcredist.exe',
-    description: 'Librerías C/C++ de sistema y temporizadores de precisión de 1 ms. Evita errores de DLL faltantes en Windows y garantiza el procesamiento a 1000 Hz.',
-    whyRequired: 'Obligatorio en Windows para ejecutar binarios C++ sin errores.',
+    benefit: 'Garantiza que el emulador funcione fluido, estable y sin errores en Windows.',
   },
   {
     id: 'aimcake_bridge',
-    name: 'Cliente Desktop AimCake (Windows App)',
-    badge: 'App de Escritorio Windows',
+    name: 'Aplicación de Escritorio AimCake',
+    badge: 'App Windows',
     badgeType: 'info',
     fileName: 'AimCake_Setup.exe',
     fileSize: '~6.3 MB',
     downloadUrl: '/downloads/AimCake_Setup.exe',
-    description: 'Aplicación cliente nativa para Windows con bandeja del sistema (System Tray), telemetría a 1000 Hz y bypass de sandbox de seguridad de navegadores.',
-    whyRequired: 'Permite ejecutar el emulador en segundo plano mientras juegas.',
+    benefit: 'Te permite abrir AimCake con un clic y jugar con el emulador en segundo plano.',
   },
 ];
 
@@ -375,11 +370,10 @@ export default function SetupChecklist({
                       </span>
                     </div>
 
-                    <p className="wizard-pkg-desc">{pkg.description}</p>
-                    <div className="wizard-pkg-why">
-                      <IconShield style={{ width: 13, height: 13, color: 'var(--accent-2)', flexShrink: 0 }} />
-                      <span>{pkg.whyRequired}</span>
-                    </div>
+                    <p className="wizard-pkg-benefit">
+                      <IconCheck style={{ width: 14, height: 14, color: 'var(--accent)', flexShrink: 0, marginTop: 2 }} />
+                      <span>{pkg.benefit}</span>
+                    </p>
 
                     <div className="wizard-pkg-actions">
                       <a

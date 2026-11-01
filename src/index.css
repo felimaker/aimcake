@@ -3538,22 +3538,18 @@ input[type='range']::-webkit-slider-thumb:hover { transform: scale(1.18); }
   color: var(--text);
   line-height: 1.35;
 }
-.wizard-pkg-desc {
-  margin: 0;
-  font-size: 12.5px;
-  line-height: 1.5;
+.wizard-pkg-benefit {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 4px 0 8px;
+  font-size: 13px;
+  line-height: 1.45;
   color: var(--text-dim);
 }
-.wizard-pkg-why {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
-  border-radius: 6px;
-  background: hsl(222 24% 10% / 0.7);
-  border: 1px solid var(--border);
-  font-size: 11.5px;
-  color: var(--text-faint);
+.wizard-pkg-benefit span {
+  color: var(--text);
+  font-weight: 500;
 }
 .wizard-pkg-actions {
   display: flex;
