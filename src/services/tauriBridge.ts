@@ -31,52 +31,32 @@ const MOCK_DEVICES: InputDevice[] = [
   {
     id: 'mouse:046D:B023',
     kind: 'mouse',
-    name: 'Ratón Logitech Bluetooth (G Pro / MX / Pebble)',
+    name: 'Ratón Logitech (Bluetooth)',
     manufacturer: 'Logitech',
     vid: '046D',
     pid: 'B023',
-    interfaces: 2,
+    interfaces: 1,
     connection: 'Bluetooth',
   },
   {
     id: 'mouse:acpi\\touchpad',
     kind: 'mouse',
-    name: 'Touchpad / Pad Mouse Integrado',
-    manufacturer: 'Synaptics / Precision Touchpad (Portátil)',
+    name: 'Touchpad Integrado (Laptop)',
+    manufacturer: 'Touchpad Portátil',
     vid: null,
     pid: null,
     interfaces: 1,
-    connection: 'I2C / integrado',
-  },
-  {
-    id: 'mouse:1532:0084',
-    kind: 'mouse',
-    name: 'Razer DeathAdder V2 (Mouse USB)',
-    manufacturer: 'Razer',
-    vid: '1532',
-    pid: '0084',
-    interfaces: 4,
-    connection: 'USB',
+    connection: 'Integrado / I2C',
   },
   {
     id: 'keyboard:acpi\\pnp0303',
     kind: 'keyboard',
-    name: 'Teclado integrado (Portátil)',
+    name: 'Teclado Integrado (Laptop)',
     manufacturer: 'OEM Laptop',
     vid: null,
     pid: null,
     interfaces: 1,
     connection: 'PS/2 / integrado',
-  },
-  {
-    id: 'keyboard:046D:C33F',
-    kind: 'keyboard',
-    name: 'G815 RGB Mechanical Gaming Keyboard',
-    manufacturer: 'Logitech',
-    vid: '046D',
-    pid: 'C33F',
-    interfaces: 3,
-    connection: 'USB',
   },
 ];
 
@@ -104,12 +84,7 @@ class MockEngine {
    * o del ratón externo Logitech Bluetooth.
    */
   resolveMouseSource(e: MouseEvent | WheelEvent | PointerEvent): string {
-    // 1. Si el usuario ya asignó un ratón específico en el perfil, canalizar estrictamente a ese
-    if (this.settings.mice.length > 0) {
-      return this.settings.mice[0];
-    }
-
-    // 2. Rueda de Touchpad: deltas en modo píxel finos, gestos horizontales o pinch-to-zoom
+    // 1. Rueda de Touchpad: deltas en modo píxel finos, gestos horizontales o pinch-to-zoom
     if ('deltaY' in e) {
       const we = e as WheelEvent;
       const isTouchpad = (we.deltaMode === 0 && Math.abs(we.deltaY) < 60 && Math.abs(we.deltaY) > 0) || Math.abs(we.deltaX) > 0 || we.ctrlKey;
@@ -117,23 +92,16 @@ class MockEngine {
       if (Math.abs(we.deltaY) >= 80) return 'mouse:046D:B023';
     }
 
-    // 3. PointerEvent touch o pen -> Touchpad nativo
+    // 2. PointerEvent touch o pen -> Touchpad nativo
     if ('pointerType' in e && (e.pointerType === 'touch' || e.pointerType === 'pen')) {
       return 'mouse:acpi\\touchpad';
     }
 
-    // 4. Por defecto, todo movimiento y clic físico proviene del Ratón Externo Logitech Bluetooth
+    // 3. Por defecto, movimiento y clics provienen del Ratón Externo Logitech Bluetooth
     return 'mouse:046D:B023';
   }
 
-  resolveKeyboardSource(e: KeyboardEvent): string {
-    if (this.settings.keyboards.length > 0) {
-      return this.settings.keyboards[0];
-    }
-    // Teclas multimedia o teclado numérico extendido sugieren teclado externo Logitech
-    if (['MediaTrackNext', 'MediaTrackPrevious', 'VolumeUp', 'VolumeDown'].includes(e.code)) {
-      return 'keyboard:046D:C33F';
-    }
+  resolveKeyboardSource(_e: KeyboardEvent): string {
     return 'keyboard:acpi\\pnp0303';
   }
 

@@ -34,6 +34,7 @@ export default function DevicesView({ settings, onChange, toast }: Props) {
   const [detecting, setDetecting] = useState<DeviceKind | null>(null);
   const [, force] = useState(0);
   const detectRef = useRef<DeviceKind | null>(null);
+  const detectStartRef = useRef<number>(0);
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
   const devicesRef = useRef(devices);
@@ -58,7 +59,8 @@ export default function DevicesView({ settings, onChange, toast }: Props) {
       bridge.onDevicesChanged(() => refresh()),
       bridge.onDeviceActivity((a: DeviceActivity) => {
         setActivity((prev) => ({ ...prev, [a.id]: { at: Date.now(), vk: a.vk ?? prev[a.id]?.vk ?? null, count: (prev[a.id]?.count ?? 0) + 1 } }));
-        if (detectRef.current === a.kind) {
+        // Ignora los eventos en los primeros 450 ms para no registrar el clic sobre el botón "Detectar"
+        if (detectRef.current === a.kind && Date.now() >= detectStartRef.current) {
           detectRef.current = null;
           setDetecting(null);
           const key = KIND_TEXT[a.kind].key;
@@ -76,6 +78,7 @@ export default function DevicesView({ settings, onChange, toast }: Props) {
   const startDetect = (kind: DeviceKind) => {
     const next = detecting === kind ? null : kind;
     detectRef.current = next;
+    detectStartRef.current = Date.now() + 450;
     setDetecting(next);
   };
 
@@ -101,9 +104,44 @@ export default function DevicesView({ settings, onChange, toast }: Props) {
         </div>
 
         {detecting === kind && (
-          <div className="alert info" style={{ marginBottom: 12 }}>
-            <IconRadar />
-            <span>{kind === 'keyboard' ? 'Pulsa cualquier tecla en el teclado que quieres usar.' : 'Mueve o haz clic con el ratón que quieres usar.'} Se seleccionará automáticamente.</span>
+          <div className="alert info" style={{ marginBottom: 12, flexDirection: 'column', alignItems: 'stretch', gap: 10 }}>
+            <div className="row" style={{ gap: 8 }}>
+              <IconRadar />
+              <strong>{kind === 'keyboard' ? 'Detección de Teclado' : 'Asistente de Detección de Ratón'}</strong>
+            </div>
+            <p style={{ margin: 0, fontSize: 13 }}>
+              {kind === 'keyboard'
+                ? 'Pulsa cualquier tecla en tu teclado para detectarlo, o pulsa en él directamente abajo.'
+                : 'Mueve o haz clic con tu ratón físico (o desliza el touchpad). También puedes asignarlo con un clic:'}
+            </p>
+            {kind === 'mouse' && (
+              <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-primary"
+                  onClick={() => {
+                    onChange({ ...settings, mice: ['mouse:046D:B023'] });
+                    setDetecting(null);
+                    detectRef.current = null;
+                    toast('success', 'Ratón Logitech (Bluetooth) asignado con éxito.');
+                  }}
+                >
+                  <IconMouse /> Usar Ratón Logitech (Bluetooth)
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-ghost"
+                  onClick={() => {
+                    onChange({ ...settings, mice: ['mouse:acpi\\touchpad'] });
+                    setDetecting(null);
+                    detectRef.current = null;
+                    toast('info', 'Touchpad Integrado asignado.');
+                  }}
+                >
+                  Usar Touchpad Integrado
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -136,8 +174,8 @@ export default function DevicesView({ settings, onChange, toast }: Props) {
                     <strong title={d.name}>{d.name}</strong>
                     {on && <span className="chip ok xs"><IconCheck /> Activo para Aim Assist</span>}
                     {isBlocked && (
-                      <span className="chip xs" style={{ opacity: 0.8, color: 'var(--danger)', borderColor: 'rgba(255,92,108,0.3)', background: 'rgba(255,92,108,0.06)' }}>
-                        🚫 Aislado / Bloqueado
+                      <span className="chip xs" style={{ opacity: 0.75, color: 'var(--danger)', borderColor: 'rgba(255,92,108,0.3)', background: 'rgba(255,92,108,0.06)' }}>
+                        🚫 Aislado
                       </span>
                     )}
                   </div>
@@ -156,7 +194,14 @@ export default function DevicesView({ settings, onChange, toast }: Props) {
                     )}
                   </span>
                 </div>
-                <span className={`dev-check radio ${on ? 'on' : ''}`}><IconCheck /></span>
+                <div className="row" style={{ marginLeft: 'auto', gap: 8, alignItems: 'center' }}>
+                  {on ? (
+                    <span className="chip ok sm"><IconCheck /> Asignado</span>
+                  ) : (
+                    <span className="btn btn-sm btn-primary">Elegir</span>
+                  )}
+                  <span className={`dev-check radio ${on ? 'on' : ''}`}><IconCheck /></span>
+                </div>
               </button>
             );
           })}
@@ -179,8 +224,6 @@ export default function DevicesView({ settings, onChange, toast }: Props) {
   };
 
   const ctrl = settings.controller ? CONTROLLER_BY_ID[settings.controller] : null;
-
-  // Encontrar el ratón elegido
   const chosenMouse = devices.find((d) => d.kind === 'mouse' && settings.mice.includes(d.id));
 
   return (
@@ -194,101 +237,6 @@ export default function DevicesView({ settings, onChange, toast }: Props) {
         </div>
         <ControllerPicker value={settings.controller} onChange={(controller) => onChange({ ...settings, controller })} />
         {ctrl?.note && <p className="faint cpick-note"><IconAlert /> {ctrl.note}</p>}
-      </section>
-
-      {/* Módulo de Diagnóstico y Aislamiento de Entradas */}
-      <section className="card dev-isolation-card">
-        <div className="card-title">
-          <span className="row">
-            <IconRadar style={{ width: 16, color: 'var(--accent)' }} />
-            Verificador de Aislamiento Estricto de Entradas
-          </span>
-          <span className="chip ok sm">
-            <IconCheck /> Aislamiento de Hardware 1:1
-          </span>
-        </div>
-        <p className="faint" style={{ fontSize: 13, margin: '0 0 12px 0' }}>
-          Si estás en una computadora portátil con <strong>Touchpad integrado</strong> y además tienes conectado un <strong>mouse externo (ej. Logitech)</strong>,
-          AimCake aísla estrictamente cada dispositivo para que no se mezclen las entradas. Solo el ratón que elijas abajo controlará el Aim Assist:
-        </p>
-
-        <div className="dev-isolation-grid">
-          {/* Tarjeta de Prueba Touchpad */}
-          <div className={`dev-iso-tile ${settings.mice.includes('mouse:acpi\\touchpad') ? 'active-source' : 'blocked-source'}`}>
-            <div className="row-between">
-              <strong>Touchpad / Pad Mouse Integrado</strong>
-              {settings.mice.includes('mouse:acpi\\touchpad') ? (
-                <span className="chip ok xs"><IconCheck /> Ratón Seleccionado</span>
-              ) : (
-                <span className="chip xs" style={{ color: 'var(--danger)' }}>🚫 Aislado / Ignorado</span>
-              )}
-            </div>
-            <p className="faint" style={{ fontSize: 12, margin: '6px 0' }}>
-              Touchpad nativo del portátil (I2C / integrado).
-            </p>
-            <div className="row" style={{ gap: 8, marginTop: 8 }}>
-              <button
-                type="button"
-                className="btn btn-sm"
-                onClick={() => bridge.simulateDeviceActivity('mouse:acpi\\touchpad', 'mouse')}
-              >
-                Probar Entrada de Touchpad
-              </button>
-              {!settings.mice.includes('mouse:acpi\\touchpad') && (
-                <button
-                  type="button"
-                  className="btn btn-sm btn-primary"
-                  onClick={() => onChange({ ...settings, mice: ['mouse:acpi\\touchpad'] })}
-                >
-                  Usar Este Touchpad
-                </button>
-              )}
-            </div>
-            <small style={{ marginTop: 6, display: 'block', fontSize: 11.5, color: settings.mice.includes('mouse:acpi\\touchpad') ? 'var(--accent)' : 'var(--muted)' }}>
-              {settings.mice.includes('mouse:acpi\\touchpad')
-                ? '✅ RECIBIDO: El Aim Assist responderá exclusivamente a tu touchpad.'
-                : '🚫 BLOQUEADO: El sistema ignora este touchpad para no interferir con tu mouse externo.'}
-            </small>
-          </div>
-
-          {/* Tarjeta de Prueba Mouse Logitech / Externo Bluetooth */}
-          <div className={`dev-iso-tile ${settings.mice.includes('mouse:046D:B023') ? 'active-source' : (settings.mice.length > 0 && !settings.mice.includes('mouse:046D:B023') ? 'blocked-source' : '')}`}>
-            <div className="row-between">
-              <strong>Ratón Logitech Bluetooth</strong>
-              {settings.mice.includes('mouse:046D:B023') ? (
-                <span className="chip ok xs"><IconCheck /> Ratón Seleccionado</span>
-              ) : (
-                <span className="chip xs" style={{ color: 'var(--danger)' }}>🚫 Aislado / Ignorado</span>
-              )}
-            </div>
-            <p className="faint" style={{ fontSize: 12, margin: '6px 0' }}>
-              Mouse inalámbrico Logitech conectado por Bluetooth.
-            </p>
-            <div className="row" style={{ gap: 8, marginTop: 8 }}>
-              <button
-                type="button"
-                className="btn btn-sm"
-                onClick={() => bridge.simulateDeviceActivity('mouse:046D:B023', 'mouse')}
-              >
-                Probar Entrada Logitech
-              </button>
-              {!settings.mice.includes('mouse:046D:B023') && (
-                <button
-                  type="button"
-                  className="btn btn-sm btn-primary"
-                  onClick={() => onChange({ ...settings, mice: ['mouse:046D:B023'] })}
-                >
-                  Usar Este Logitech
-                </button>
-              )}
-            </div>
-            <small style={{ marginTop: 6, display: 'block', fontSize: 11.5, color: settings.mice.includes('mouse:046D:B023') ? 'var(--accent)' : 'var(--muted)' }}>
-              {settings.mice.includes('mouse:046D:B023')
-                ? '✅ RECIBIDO: El Aim Assist responderá exclusivamente a tu mouse Logitech Bluetooth.'
-                : '🚫 BLOQUEADO: Si no estás usando este mouse, sus entradas no moverán tu puntería en el juego.'}
-            </small>
-          </div>
-        </div>
       </section>
 
       <div className="row-between">

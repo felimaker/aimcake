@@ -1,5 +1,5 @@
 /** Gestión de perfiles de configuración: persistencia, importación y exportación. */
-import type { Binding, EngineSettings, InputDevice, Profile, ProfileStore } from '../types';
+import type { EngineSettings, InputDevice, Profile, ProfileStore } from '../types';
 import { DEFAULT_SETTINGS, normalizeSettings } from './curve';
 import { bridge } from '../services/tauriBridge';
 
@@ -23,30 +23,29 @@ export function createProfile(name: string, settings: EngineSettings = DEFAULT_S
   };
 }
 
-const b = (input: number, target: string): Binding => ({ input, target });
-
 /** Perfiles de ejemplo para la primera ejecución. */
 function starterProfiles(): Profile[] {
-  let main = DEFAULT_SETTINGS;
+  let main: EngineSettings = {
+    ...DEFAULT_SETTINGS,
+    controller: 'X360',
+    keyboards: ['keyboard:acpi\\pnp0303'],
+    mice: ['mouse:046D:B023'],
+  };
   try {
     const legacy = localStorage.getItem(LEGACY_SETTINGS_KEY);
-    if (legacy) main = normalizeSettings(JSON.parse(legacy));
+    if (legacy) {
+      const parsed = JSON.parse(legacy);
+      main = normalizeSettings({
+        ...parsed,
+        controller: parsed.controller || 'X360',
+        keyboards: parsed.keyboards?.length ? parsed.keyboards : ['keyboard:acpi\\pnp0303'],
+        mice: parsed.mice?.length ? parsed.mice : ['mouse:046D:B023'],
+      });
+    }
   } catch { /* ajustes antiguos corruptos: usar los por defecto */ }
-
-  const driving: EngineSettings = {
-    ...DEFAULT_SETTINGS,
-    mouseTarget: 'NONE',
-    bindings: [
-      b(0x57, 'RT'), b(0x53, 'LT'), b(0x41, 'LS_LEFT'), b(0x44, 'LS_RIGHT'),
-      b(0x20, 'A'), b(0x45, 'Y'), b(0x51, 'X'), b(0xa0, 'B'), b(0x43, 'RTHUMB'),
-      b(0x25, 'RS_LEFT'), b(0x27, 'RS_RIGHT'), b(0x26, 'RS_UP'), b(0x28, 'RS_DOWN'),
-      b(0x09, 'BACK'), b(0x1b, 'START'), b(0x01, 'RB'), b(0x02, 'LB'),
-    ],
-  };
 
   return [
     createProfile('Shooter · Call of Duty', main, { game: 'Warzone / MWIII', color: PROFILE_COLORS[0] }),
-    createProfile('Conducción', driving, { game: 'Teclado sin ratón', color: PROFILE_COLORS[3] }),
   ];
 }
 
@@ -56,12 +55,18 @@ function defaultStore(): ProfileStore {
 }
 
 function normalizeProfile(raw: Partial<Profile>): Profile {
+  const normSettings = normalizeSettings(raw.settings);
+  // Asegura que tenga el protocolo y dispositivos por defecto si venía vacío
+  if (!normSettings.controller) normSettings.controller = 'X360';
+  if (normSettings.keyboards.length === 0) normSettings.keyboards = ['keyboard:acpi\\pnp0303'];
+  if (normSettings.mice.length === 0) normSettings.mice = ['mouse:046D:B023'];
+
   return {
     id: typeof raw.id === 'string' && raw.id ? raw.id : newId(),
     name: typeof raw.name === 'string' && raw.name.trim() ? raw.name.trim().slice(0, 48) : 'Perfil sin nombre',
     game: typeof raw.game === 'string' ? raw.game.slice(0, 48) : '',
     color: typeof raw.color === 'string' ? raw.color : PROFILE_COLORS[0],
-    settings: normalizeSettings(raw.settings),
+    settings: normSettings,
     updatedAt: typeof raw.updatedAt === 'number' ? raw.updatedAt : Date.now(),
   };
 }
@@ -70,7 +75,9 @@ export function parseStore(json: string): ProfileStore | null {
   try {
     const raw = JSON.parse(json) as Partial<ProfileStore>;
     if (!Array.isArray(raw.profiles) || raw.profiles.length === 0) return null;
-    const profiles = raw.profiles.map(normalizeProfile);
+    // Filtra perfiles de ejemplo no deseados o ficticios
+    const filtered = raw.profiles.filter((p) => p?.name !== 'Conducción');
+    const profiles = (filtered.length > 0 ? filtered : raw.profiles).map(normalizeProfile);
     const activeId = profiles.some((p) => p.id === raw.activeId) ? raw.activeId! : profiles[0].id;
     return { version: 1, activeId, profiles };
   } catch {

@@ -576,33 +576,48 @@ export default function SetupChecklist({
                   <strong>2. Ratón Exclusivo</strong>
                 </div>
                 <p className="faint" style={{ fontSize: 12.5, margin: '4px 0 8px 0' }}>
-                  Ratón que controlará el Stick Derecho (Aim Assist). Si usas laptop con mouse externo, solo el elegido responderá:
+                  Elige qué ratón apuntará con Aim Assist. Las demás fuentes quedan automáticamente aisladas:
                 </p>
-                <select
-                  className="input"
-                  value={s.mice[0] ?? ''}
-                  onChange={(e) => handleDeviceChange('mouse', e.target.value)}
-                  style={{ width: '100%' }}
-                >
-                  <option value="">-- Seleccionar Ratón --</option>
-                  {devices.filter((d) => d.kind === 'mouse').map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.name} {d.connection ? `(${d.connection})` : ''}
-                    </option>
-                  ))}
-                </select>
-                <div className="wizard-device-status">
+
+                <div className="stack" style={{ gap: 8 }}>
+                  {devices.filter((d) => d.kind === 'mouse').map((d) => {
+                    const isSelected = s.mice.includes(d.id);
+                    return (
+                      <button
+                        key={d.id}
+                        type="button"
+                        className={`wizard-opt-btn ${isSelected ? 'selected' : ''}`}
+                        onClick={() => handleDeviceChange('mouse', d.id)}
+                      >
+                        <div className="row" style={{ gap: 8, alignItems: 'center' }}>
+                          <span className="wizard-opt-radio" />
+                          <div style={{ textAlign: 'left' }}>
+                            <strong>{d.name}</strong>
+                            <div className="faint" style={{ fontSize: 11 }}>{d.connection || 'Conectado'}</div>
+                          </div>
+                        </div>
+                        {isSelected ? (
+                          <span className="chip xs ok">✓ Activo Aim Assist</span>
+                        ) : (
+                          <span className="chip xs" style={{ opacity: 0.75 }}>Aislado</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="wizard-device-status" style={{ marginTop: 10 }}>
                   {ms ? (
-                    <div className="stack" style={{ gap: 4 }}>
-                      <span className="row" style={{ gap: 6, color: 'var(--accent)', fontSize: 12.5 }}>
-                        <IconCheck style={{ width: 14 }} /> {ms.name}
+                    <div className="stack" style={{ gap: 2 }}>
+                      <span className="row" style={{ gap: 6, color: 'var(--accent)', fontSize: 12 }}>
+                        <IconCheck style={{ width: 13 }} /> {ms.name} asignado
                       </span>
-                      <small className="faint" style={{ fontSize: 11, color: 'var(--text-dim)' }}>
-                        🛡️ Aislamiento 1:1 activo · Las demás fuentes de ratón están bloqueadas
+                      <small className="faint" style={{ fontSize: 11 }}>
+                        🛡️ Aislamiento 1:1 activo
                       </small>
                     </div>
                   ) : (
-                    <span className="faint" style={{ color: 'var(--warn)' }}>⚠ Selecciona tu ratón de juego</span>
+                    <span className="faint" style={{ color: 'var(--warn)' }}>⚠ Elige tu ratón arriba</span>
                   )}
                 </div>
               </div>
@@ -613,27 +628,44 @@ export default function SetupChecklist({
                   <IconKeyboard style={{ width: 18, height: 18, color: 'var(--accent)' }} />
                   <strong>3. Teclado Exclusivo</strong>
                 </div>
-                <p className="faint" style={{ fontSize: 12.5 }}>Teclado que controlará los botones y movimiento:</p>
-                <select
-                  className="input"
-                  value={s.keyboards[0] ?? ''}
-                  onChange={(e) => handleDeviceChange('keyboard', e.target.value)}
-                  style={{ width: '100%' }}
-                >
-                  <option value="">-- Seleccionar Teclado --</option>
-                  {devices.filter((d) => d.kind === 'keyboard').map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.name} {d.connection ? `(${d.connection})` : ''}
-                    </option>
-                  ))}
-                </select>
-                <div className="wizard-device-status">
+                <p className="faint" style={{ fontSize: 12.5, margin: '4px 0 8px 0' }}>
+                  Teclado para movimientos WASD y acciones en juego:
+                </p>
+
+                <div className="stack" style={{ gap: 8 }}>
+                  {devices.filter((d) => d.kind === 'keyboard').map((d) => {
+                    const isSelected = s.keyboards.includes(d.id);
+                    return (
+                      <button
+                        key={d.id}
+                        type="button"
+                        className={`wizard-opt-btn ${isSelected ? 'selected' : ''}`}
+                        onClick={() => handleDeviceChange('keyboard', d.id)}
+                      >
+                        <div className="row" style={{ gap: 8, alignItems: 'center' }}>
+                          <span className="wizard-opt-radio" />
+                          <div style={{ textAlign: 'left' }}>
+                            <strong>{d.name}</strong>
+                            <div className="faint" style={{ fontSize: 11 }}>{d.connection || 'Integrado'}</div>
+                          </div>
+                        </div>
+                        {isSelected ? (
+                          <span className="chip xs ok">✓ Asignado</span>
+                        ) : (
+                          <span className="chip xs" style={{ opacity: 0.75 }}>Elegir</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="wizard-device-status" style={{ marginTop: 10 }}>
                   {kb ? (
-                    <span className="row" style={{ gap: 6, color: 'var(--accent)' }}>
-                      <IconCheck style={{ width: 14 }} /> {kb.name}
+                    <span className="row" style={{ gap: 6, color: 'var(--accent)', fontSize: 12 }}>
+                      <IconCheck style={{ width: 13 }} /> {kb.name} asignado
                     </span>
                   ) : (
-                    <span className="faint" style={{ color: 'var(--warn)' }}>⚠ Selecciona tu teclado</span>
+                    <span className="faint" style={{ color: 'var(--warn)' }}>⚠ Elige tu teclado arriba</span>
                   )}
                 </div>
               </div>
