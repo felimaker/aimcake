@@ -1,11 +1,11 @@
 import { useState, useMemo } from 'react';
-import type { ControllerType, EngineStatus, InputDevice, Profile } from '../types';
+import type { ControllerType, EngineStatus, InputDevice, Profile, SoftwarePackageId } from '../types';
 import { checkProfile } from '../lib/profiles';
 import { isMouseInput } from '../lib/keys';
 import { bridge, isTauri } from '../services/tauriBridge';
 import {
   IconArrowRight, IconCheck, IconChip, IconCpu, IconCurve, IconDownload,
-  IconGamepad, IconKeyboard, IconLayers, IconMouse, IconRefresh, IconSpark
+  IconGamepad, IconKeyboard, IconLayers, IconMouse, IconRefresh, IconShield, IconSpark
 } from './Icons';
 
 export type StepNum = 1 | 2 | 3 | 4 | 5;
@@ -21,6 +21,65 @@ interface Props {
   onGo: (view: GoView) => void;
   toast: (kind: 'error' | 'success' | 'info', text: string) => void;
 }
+
+interface InstallablePackage {
+  id: SoftwarePackageId;
+  name: string;
+  badge: string;
+  badgeType: 'ok' | 'info';
+  fileName: string;
+  fileSize: string;
+  downloadUrl: string;
+  description: string;
+  whyRequired: string;
+}
+
+const INSTALLABLE_PACKAGES: InstallablePackage[] = [
+  {
+    id: 'vigembus',
+    name: 'Driver Kernel ViGEmBus (Virtual Gamepad Bus)',
+    badge: 'WHQL Microsoft',
+    badgeType: 'ok',
+    fileName: 'ViGEmBus_Setup.exe',
+    fileSize: '~6.3 MB',
+    downloadUrl: '/downloads/ViGEmBus_Setup.exe',
+    description: 'Controlador oficial certificado en modo kernel de Windows. Crea el gamepad virtual Xbox 360 / DualShock 4 que los juegos detectan a nivel de hardware para activar el Aim Assist nativo.',
+    whyRequired: 'Obligatorio para que Windows reconozca el mando virtual.',
+  },
+  {
+    id: 'aimcake_drivers',
+    name: 'AimCake Driver Suite & Device Isolator',
+    badge: 'Driver Oficial AimCake',
+    badgeType: 'ok',
+    fileName: 'aimcake_drivers.exe',
+    fileSize: '~6.3 MB',
+    downloadUrl: '/downloads/aimcake_drivers.exe',
+    description: 'Filtro de aislamiento de hardware y captura Raw Input. Aísla exclusivamente el teclado y ratón seleccionados para emular el mando sin doble puntero ni conflicto de cursores en Windows.',
+    whyRequired: 'Evita colisiones de puntero y habilita polling a 1000 Hz.',
+  },
+  {
+    id: 'vcredist',
+    name: 'Microsoft Visual C++ 2015-2022 Redistributable (x64)',
+    badge: 'Runtime Oficial Microsoft',
+    badgeType: 'info',
+    fileName: 'vc_redist.x64.exe',
+    fileSize: '~25.6 MB',
+    downloadUrl: '/downloads/vc_redist.x64.exe',
+    description: 'Librerías C/C++ de sistema y temporizadores de precisión de 1 ms. Evita errores de DLL faltantes en Windows y garantiza el procesamiento a 1000 Hz.',
+    whyRequired: 'Obligatorio en Windows para ejecutar binarios C++ sin errores.',
+  },
+  {
+    id: 'aimcake_bridge',
+    name: 'Cliente Desktop AimCake (Windows App)',
+    badge: 'App de Escritorio Windows',
+    badgeType: 'info',
+    fileName: 'AimCake_Setup.exe',
+    fileSize: '~6.3 MB',
+    downloadUrl: '/downloads/AimCake_Setup.exe',
+    description: 'Aplicación cliente nativa para Windows con bandeja del sistema (System Tray), telemetría a 1000 Hz y bypass de sandbox de seguridad de navegadores.',
+    whyRequired: 'Permite ejecutar el emulador en segundo plano mientras juegas.',
+  },
+];
 
 const POPULAR_GAMES = [
   'Call of Duty: Warzone',
@@ -51,12 +110,19 @@ export default function SetupChecklist({
   const mappedCount = s.bindings.length;
   const mouseBindingsCount = s.bindings.filter((b) => isMouseInput(b.input)).length;
 
-  // Estado del driver en Windows
+  // Estado de los paquetes de software
+  const pkgs = status?.verification?.packages;
   const driverReady = !!status?.driverOk;
+  
+  // Conteo de paquetes verificados
+  const verifiedCount = INSTALLABLE_PACKAGES.filter(
+    (p) => pkgs?.[p.id]?.verified || (p.id === 'vigembus' && driverReady)
+  ).length;
+  const allSoftwareReady = driverReady || verifiedCount >= 3;
 
   // Estados de completitud de cada uno de los 5 pasos
   const stepCompleted: Record<StepNum, boolean> = {
-    1: driverReady,
+    1: allSoftwareReady,
     2: Boolean(profile.name.trim().length > 0),
     3: Boolean(s.controller && s.keyboards.length > 0 && s.mice.length > 0),
     4: Boolean(mappedCount >= 4),
@@ -115,10 +181,38 @@ export default function SetupChecklist({
     setCheckingDrivers(true);
     try {
       await onRefreshStatus();
-      toast('info', 'Comprobación de drivers actualizada.');
+      toast('info', 'Comprobación de software y drivers de Windows actualizada.');
     } finally {
       setCheckingDrivers(false);
     }
+  };
+
+  const handleDownloadPackage = (pkg: InstallablePackage) => {
+    bridge.recordPackageDownload(pkg.id);
+    onRefreshStatus();
+    toast('info', `Iniciando descarga de ${pkg.fileName}...`);
+  };
+
+  const handleDownloadAll = () => {
+    INSTALLABLE_PACKAGES.forEach((pkg, index) => {
+      setTimeout(() => {
+        bridge.recordPackageDownload(pkg.id);
+        const link = document.createElement('a');
+        link.href = pkg.downloadUrl;
+        link.download = pkg.fileName;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      }, index * 320);
+    });
+    onRefreshStatus();
+    toast('success', 'Descargando los 4 instaladores de Windows a tu carpeta de descargas.');
+  };
+
+  const handleToggleVerified = (pkgId: SoftwarePackageId) => {
+    bridge.togglePackageVerified(pkgId);
+    onRefreshStatus();
+    toast('info', 'Estado de instalación actualizado.');
   };
 
   const handleInstallAuto = async () => {
@@ -143,7 +237,7 @@ export default function SetupChecklist({
   };
 
   const STEPS_META = [
-    { num: 1 as StepNum, title: 'Drivers (.exe)', label: 'Drivers Kernel', icon: <IconChip /> },
+    { num: 1 as StepNum, title: 'Instalables (.exe)', label: 'Software e Instalables', icon: <IconChip /> },
     { num: 2 as StepNum, title: 'Perfil', label: 'Nombre y Juego', icon: <IconLayers /> },
     { num: 3 as StepNum, title: 'Dispositivos', label: 'Mando, Mouse y Teclado', icon: <IconGamepad /> },
     { num: 4 as StepNum, title: 'Mapeo', label: 'Asignación de Teclas', icon: <IconKeyboard /> },
@@ -201,93 +295,129 @@ export default function SetupChecklist({
       {/* Wizard Step Body */}
       <div className="wizard-content">
         {/* ======================================================== */}
-        {/* PASO 1: INSTALACIÓN Y VALIDACIÓN DE DRIVERS (.EXE)       */}
+        {/* PASO 1: INSTALACIÓN DE TODOS LOS INSTALABLES (.EXE)      */}
         {/* ======================================================== */}
         {activeStep === 1 && (
           <div className="wizard-pane animate-fade">
             <div className="wizard-pane-header">
               <div className="wizard-pane-icon"><IconChip /></div>
               <div>
-                <h4>Paso 1: Instalación de Drivers (.exe) en Windows</h4>
+                <h4>Paso 1: Instalación de Todos los Software e Instalables (.exe)</h4>
                 <p className="faint">
-                  AimCake requiere el controlador de kernel ViGEmBus para crear el gamepad virtual que los juegos reconocen a 1000 Hz.
+                  Descarga e instala los componentes necesarios en Windows para habilitar el mando virtual, las librerías C++ y el aislamiento a 1000 Hz.
                 </p>
               </div>
-              <span className={`chip ${driverReady ? 'ok' : 'warn'}`} style={{ marginLeft: 'auto' }}>
-                <span className="dot" />
-                {driverReady ? 'Driver Operativo' : 'Driver no detectado'}
+              <div className="row" style={{ marginLeft: 'auto', gap: 8 }}>
+                <span className={`chip ${allSoftwareReady ? 'ok' : 'warn'}`}>
+                  <span className="dot" />
+                  {allSoftwareReady ? `${verifiedCount} de 4 Verificados` : `${verifiedCount} de 4 Instalados`}
+                </span>
+              </div>
+            </div>
+
+            {/* Barra de Acciones Globales del Paso 1 */}
+            <div className="wizard-pkg-bulk-bar">
+              <div className="row" style={{ gap: 10, flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleDownloadAll}
+                >
+                  <IconDownload /> Descargar los 4 Instalables (.exe)
+                </button>
+
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={handleRecheckDriver}
+                  disabled={checkingDrivers}
+                >
+                  {checkingDrivers ? <span className="spinner" /> : <IconRefresh />} Validar Instalación de Todo
+                </button>
+
+                {isTauri && (
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    onClick={handleInstallAuto}
+                    disabled={installingAuto}
+                  >
+                    {installingAuto ? <span className="spinner" /> : <IconCpu />} Instalar Automático (Tauri)
+                  </button>
+                )}
+              </div>
+              <span className="faint" style={{ fontSize: 12 }}>
+                💡 Puedes descargar cada paquete individualmente o pulsar «Descargar los 4 Instalables».
               </span>
             </div>
 
-            <div className="wizard-pane-card-row">
-              {/* Tarjeta ViGEmBus */}
-              <div className={`wizard-pkg-item ${driverReady ? 'verified' : ''}`}>
-                <div className="wizard-pkg-main">
-                  <div className="row-between">
-                    <strong>ViGEmBus Virtual Gamepad Bus</strong>
-                    <span className="chip sm ok">WHQL Microsoft</span>
-                  </div>
-                  <p className="faint" style={{ fontSize: 13, margin: '8px 0' }}>
-                    Controlador kernel oficial que emula el mando Xbox 360 / DualShock 4 a nivel de hardware para habilitar el Aim Assist nativo.
-                  </p>
-                  <div className="row" style={{ gap: 10, marginTop: 12 }}>
-                    <a
-                      href="/downloads/ViGEmBus_Setup.exe"
-                      download="ViGEmBus_Setup.exe"
-                      className="btn btn-sm btn-primary"
-                    >
-                      <IconDownload /> Descargar ViGEmBus_Setup.exe (~6.3 MB)
-                    </a>
-                    {isTauri && (
-                      <button
-                        className="btn btn-sm"
-                        onClick={handleInstallAuto}
-                        disabled={installingAuto}
-                      >
-                        {installingAuto ? <span className="spinner" /> : <IconCpu />} Instalar Automático
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
+            {/* Grid con los 4 Software / Instalables Requeridos */}
+            <div className="wizard-pkg-grid">
+              {INSTALLABLE_PACKAGES.map((pkg, idx) => {
+                const isDownloaded = Boolean(pkgs?.[pkg.id]?.downloaded);
+                const isVerified = Boolean(pkgs?.[pkg.id]?.verified || (pkg.id === 'vigembus' && driverReady));
 
-              {/* Tarjeta AimCake Suite */}
-              <div className="wizard-pkg-item verified">
-                <div className="wizard-pkg-main">
-                  <div className="row-between">
-                    <strong>AimCake Driver & Device Isolator</strong>
-                    <span className="chip sm ok">Oficial AimCake</span>
+                return (
+                  <div key={pkg.id} className={`wizard-pkg-card ${isVerified ? 'verified' : isDownloaded ? 'downloaded' : ''}`}>
+                    <div className="wizard-pkg-card-top">
+                      <div className="row" style={{ gap: 8 }}>
+                        <span className="wizard-pkg-num">{idx + 1}</span>
+                        <div>
+                          <strong className="wizard-pkg-title">{pkg.name}</strong>
+                          <div className="row" style={{ gap: 6, marginTop: 2 }}>
+                            <span className={`chip sm ${pkg.badgeType}`}>{pkg.badge}</span>
+                            <span className="faint" style={{ fontSize: 11.5 }}>{pkg.fileName} ({pkg.fileSize})</span>
+                          </div>
+                        </div>
+                      </div>
+                      <span className={`chip xs ${isVerified ? 'ok' : isDownloaded ? 'info' : 'warn'}`}>
+                        {isVerified ? '✓ Instalado' : isDownloaded ? 'Descargado' : 'Pendiente'}
+                      </span>
+                    </div>
+
+                    <p className="wizard-pkg-desc">{pkg.description}</p>
+                    <div className="wizard-pkg-why">
+                      <IconShield style={{ width: 13, height: 13, color: 'var(--accent-2)', flexShrink: 0 }} />
+                      <span>{pkg.whyRequired}</span>
+                    </div>
+
+                    <div className="wizard-pkg-actions">
+                      <a
+                        href={pkg.downloadUrl}
+                        download={pkg.fileName}
+                        className={`btn btn-sm ${isDownloaded ? 'btn-ghost' : 'btn-primary'}`}
+                        onClick={() => handleDownloadPackage(pkg)}
+                      >
+                        <IconDownload /> Descargar {pkg.fileName}
+                      </a>
+
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-ghost"
+                        onClick={() => handleToggleVerified(pkg.id)}
+                        title="Marcar manualmente si ya lo instalaste"
+                      >
+                        {isVerified ? (
+                          <><IconCheck style={{ color: 'var(--accent)' }} /> Verificado</>
+                        ) : (
+                          'Marcar como instalado'
+                        )}
+                      </button>
+                    </div>
                   </div>
-                  <p className="faint" style={{ fontSize: 13, margin: '8px 0' }}>
-                    Aislamiento exclusivo de periféricos para que tu mouse y teclado se traduzcan limpiamente al mando sin doble cursor en pantalla.
-                  </p>
-                  <div className="row" style={{ gap: 10, marginTop: 12 }}>
-                    <a
-                      href="/downloads/aimcake_drivers.exe"
-                      download="aimcake_drivers.exe"
-                      className="btn btn-sm"
-                    >
-                      <IconDownload /> Descargar aimcake_drivers.exe
-                    </a>
-                  </div>
-                </div>
-              </div>
+                );
+              })}
             </div>
 
-            {/* Acciones de comprobación */}
+            {/* Acciones del pie */}
             <div className="wizard-footer-actions">
+              <span className="faint" style={{ fontSize: 13 }}>
+                Una vez instalados los ejecutables en Windows, pulsa siguiente para continuar configurando tu perfil.
+              </span>
+
               <button
                 type="button"
                 className="btn btn-primary"
-                onClick={handleRecheckDriver}
-                disabled={checkingDrivers}
-              >
-                {checkingDrivers ? <span className="spinner" /> : <IconRefresh />} Validar Instalación de Drivers
-              </button>
-
-              <button
-                type="button"
-                className="btn"
                 onClick={() => setActiveStep(2)}
                 style={{ marginLeft: 'auto' }}
               >
@@ -378,7 +508,7 @@ export default function SetupChecklist({
 
             <div className="wizard-footer-actions">
               <button type="button" className="btn btn-ghost" onClick={() => setActiveStep(1)}>
-                Volver a Drivers
+                Volver a Instalables (.exe)
               </button>
               <button
                 type="button"
