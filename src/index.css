@@ -3814,3 +3814,40 @@ input[type='range']::-webkit-slider-thumb:hover { transform: scale(1.18); }
   background: hsl(222 24% 16%);
 }
 
+/* ================================================================
+   Verificador de Aislamiento Estricto de Dispositivos (Touchpad vs Mouse)
+   ================================================================ */
+.dev-isolation-card {
+  border-color: rgba(61, 220, 132, 0.25);
+  background: linear-gradient(180deg, hsl(222 22% 12% / 0.8) 0%, hsl(222 26% 9% / 0.95) 100%);
+}
+.dev-isolation-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+  margin-top: 10px;
+}
+.dev-iso-tile {
+  background: hsl(222 24% 10%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  transition: all 0.2s ease;
+}
+.dev-iso-tile.active-source {
+  border-color: var(--accent);
+  background: linear-gradient(135deg, hsl(142 88% 52% / 0.08) 0%, hsl(222 24% 10%) 100%);
+  box-shadow: 0 0 16px -4px rgba(61, 220, 132, 0.2);
+}
+.dev-iso-tile.blocked-source {
+  opacity: 0.75;
+  border-color: rgba(255, 92, 108, 0.25);
+  background: linear-gradient(135deg, rgba(255, 92, 108, 0.04) 0%, hsl(222 24% 10%) 100%);
+}
+.dev-item.dev-blocked {
+  opacity: 0.65;
+}
+.dev-item.dev-blocked:hover {
+  opacity: 0.9;
+}
+

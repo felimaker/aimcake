@@ -575,7 +575,9 @@ export default function SetupChecklist({
                   <IconMouse style={{ width: 18, height: 18, color: 'var(--accent-2)' }} />
                   <strong>2. Ratón Exclusivo</strong>
                 </div>
-                <p className="faint" style={{ fontSize: 12.5 }}>Ratón que controlará el Stick Derecho (Aim Assist):</p>
+                <p className="faint" style={{ fontSize: 12.5, margin: '4px 0 8px 0' }}>
+                  Ratón que controlará el Stick Derecho (Aim Assist). Si usas laptop con mouse externo, solo el elegido responderá:
+                </p>
                 <select
                   className="input"
                   value={s.mice[0] ?? ''}
@@ -591,9 +593,14 @@ export default function SetupChecklist({
                 </select>
                 <div className="wizard-device-status">
                   {ms ? (
-                    <span className="row" style={{ gap: 6, color: 'var(--accent)' }}>
-                      <IconCheck style={{ width: 14 }} /> {ms.name}
-                    </span>
+                    <div className="stack" style={{ gap: 4 }}>
+                      <span className="row" style={{ gap: 6, color: 'var(--accent)', fontSize: 12.5 }}>
+                        <IconCheck style={{ width: 14 }} /> {ms.name}
+                      </span>
+                      <small className="faint" style={{ fontSize: 11, color: 'var(--text-dim)' }}>
+                        🛡️ Aislamiento 1:1 activo · Las demás fuentes de ratón están bloqueadas
+                      </small>
+                    </div>
                   ) : (
                     <span className="faint" style={{ color: 'var(--warn)' }}>⚠ Selecciona tu ratón de juego</span>
                   )}

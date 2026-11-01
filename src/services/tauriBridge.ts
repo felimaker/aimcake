@@ -28,14 +28,57 @@ type Listener<T> = (v: T) => void;
 /* Dispositivos simulados (solo navegador)                              */
 /* ------------------------------------------------------------------ */
 const MOCK_DEVICES: InputDevice[] = [
-  { id: 'keyboard:046D:C33F', kind: 'keyboard', name: 'G815 RGB Mechanical Gaming Keyboard', manufacturer: 'Logitech', vid: '046D', pid: 'C33F', interfaces: 3, connection: 'USB' },
-  { id: 'keyboard:acpi\\pnp0303', kind: 'keyboard', name: 'Teclado integrado', manufacturer: null, vid: null, pid: null, interfaces: 1, connection: 'PS/2 / integrado' },
-  { id: 'mouse:046D:C547', kind: 'mouse', name: 'PRO X SUPERLIGHT 2 (LIGHTSPEED)', manufacturer: 'Logitech', vid: '046D', pid: 'C547', interfaces: 2, connection: 'USB' },
-  { id: 'mouse:1532:0084', kind: 'mouse', name: 'Razer DeathAdder V2', manufacturer: 'Razer', vid: '1532', pid: '0084', interfaces: 4, connection: 'USB' },
+  {
+    id: 'mouse:acpi\\touchpad',
+    kind: 'mouse',
+    name: 'Touchpad / Pad Mouse Integrado',
+    manufacturer: 'Synaptics / Precision Touchpad (Portátil)',
+    vid: null,
+    pid: null,
+    interfaces: 1,
+    connection: 'I2C / integrado',
+  },
+  {
+    id: 'mouse:046D:C547',
+    kind: 'mouse',
+    name: 'Logitech G PRO X Superlight',
+    manufacturer: 'Logitech',
+    vid: '046D',
+    pid: 'C547',
+    interfaces: 2,
+    connection: 'USB / Inalámbrico',
+  },
+  {
+    id: 'mouse:1532:0084',
+    kind: 'mouse',
+    name: 'Razer DeathAdder V2',
+    manufacturer: 'Razer',
+    vid: '1532',
+    pid: '0084',
+    interfaces: 4,
+    connection: 'USB',
+  },
+  {
+    id: 'keyboard:acpi\\pnp0303',
+    kind: 'keyboard',
+    name: 'Teclado integrado (Portátil)',
+    manufacturer: 'OEM Laptop',
+    vid: null,
+    pid: null,
+    interfaces: 1,
+    connection: 'PS/2 / integrado',
+  },
+  {
+    id: 'keyboard:046D:C33F',
+    kind: 'keyboard',
+    name: 'G815 RGB Mechanical Gaming Keyboard',
+    manufacturer: 'Logitech',
+    vid: '046D',
+    pid: 'C33F',
+    interfaces: 3,
+    connection: 'USB',
+  },
 ];
-/** En la vista previa, las entradas del navegador se atribuyen a estos dispositivos. */
-const MOCK_KEYBOARD = MOCK_DEVICES[0].id;
-const MOCK_MOUSE = MOCK_DEVICES[2].id;
 
 /* ------------------------------------------------------------------ */
 /* Motor simulado (solo navegador)                                     */
@@ -56,43 +99,103 @@ class MockEngine {
   private lastMoveActivity = 0;
   private stick = new StickProcessor(DEFAULT_SETTINGS.config);
 
-  private allowed(kind: 'mouse' | 'keyboard') {
-    const list = kind === 'mouse' ? this.settings.mice : this.settings.keyboards;
-    return list.length === 0 || list.includes(kind === 'mouse' ? MOCK_MOUSE : MOCK_KEYBOARD);
+  /**
+   * Discrimina de forma estricta si el evento del navegador proviene del Touchpad integrado
+   * o del ratón externo Logitech para evitar mezclas indeseadas.
+   */
+  resolveMouseSource(e: MouseEvent | WheelEvent | PointerEvent): string {
+    // 1. Rueda de Touchpad: deltas en modo píxel finos, gestos horizontales o pinch-to-zoom
+    if ('deltaY' in e) {
+      const we = e as WheelEvent;
+      const isTouchpad = (we.deltaMode === 0 && Math.abs(we.deltaY) < 60 && Math.abs(we.deltaY) > 0) || Math.abs(we.deltaX) > 0 || we.ctrlKey;
+      if (isTouchpad) return 'mouse:acpi\\touchpad';
+      if (Math.abs(we.deltaY) >= 80) return 'mouse:046D:C547';
+    }
+
+    // 2. Botón central o botones laterales (típicos de ratón Logitech)
+    if ('button' in e && (e.button === 1 || e.button === 3 || e.button === 4)) {
+      return 'mouse:046D:C547';
+    }
+
+    // 3. PointerEvent touch
+    if ('pointerType' in e && (e.pointerType === 'touch' || e.pointerType === 'pen')) {
+      return 'mouse:acpi\\touchpad';
+    }
+
+    // 4. Si el usuario ya asignó un ratón específico en el perfil, canalizar estrictamente a ese
+    if (this.settings.mice.length > 0) {
+      return this.settings.mice[0];
+    }
+
+    return 'mouse:acpi\\touchpad';
   }
 
-  private activity(kind: 'mouse' | 'keyboard', vk: number | null) {
-    const ev: DeviceActivity = { id: kind === 'mouse' ? MOCK_MOUSE : MOCK_KEYBOARD, kind, vk };
+  resolveKeyboardSource(e: KeyboardEvent): string {
+    if (this.settings.keyboards.length > 0) {
+      return this.settings.keyboards[0];
+    }
+    // Teclas multimedia o teclado numérico extendido sugieren teclado externo Logitech
+    if (['MediaTrackNext', 'MediaTrackPrevious', 'VolumeUp', 'VolumeDown'].includes(e.code)) {
+      return 'keyboard:046D:C33F';
+    }
+    return 'keyboard:acpi\\pnp0303';
+  }
+
+  private allowed(kind: 'mouse' | 'keyboard', deviceId: string) {
+    const list = kind === 'mouse' ? this.settings.mice : this.settings.keyboards;
+    if (list.length === 0) return true;
+    // AISLAMIENTO ESTRICTO: Solo el dispositivo asignado en el perfil tiene permiso para mover el Aim Assist
+    return list.includes(deviceId);
+  }
+
+  activity(kind: 'mouse' | 'keyboard', vk: number | null, deviceId: string) {
+    const ev: DeviceActivity = { id: deviceId, kind, vk };
     this.activityListeners.forEach((l) => l(ev));
   }
 
   // Captura global permanente (equivalente al hilo Raw Input del backend).
   private onMove = (e: MouseEvent) => {
+    const devId = this.resolveMouseSource(e);
     const t = performance.now();
-    if (t - this.lastMoveActivity > 120) { this.lastMoveActivity = t; this.activity('mouse', null); }
-    if (!this.running || !this.allowed('mouse')) return;
-    this.dx += e.movementX; this.dy += e.movementY;
+    if (t - this.lastMoveActivity > 120) {
+      this.lastMoveActivity = t;
+      this.activity('mouse', null, devId);
+    }
+    if (!this.running || !this.allowed('mouse', devId)) return;
+    this.dx += e.movementX;
+    this.dy += e.movementY;
   };
+
   private onKey = (e: KeyboardEvent) => {
     const vk = vkFromKeyboardEvent(e);
     if (vk == null) return;
-    if (e.type === 'keydown' && !e.repeat) this.activity('keyboard', vk);
+    const devId = this.resolveKeyboardSource(e);
+    if (e.type === 'keydown' && !e.repeat) this.activity('keyboard', vk, devId);
     if (!this.running) return;
-    if (vk === this.settings.pauseHotkey && e.type === 'keydown' && !e.repeat) { this.paused = !this.paused; return; }
-    if (!this.allowed('keyboard')) return;
-    if (e.type === 'keydown') this.pressed.add(vk); else this.pressed.delete(vk);
+    if (vk === this.settings.pauseHotkey && e.type === 'keydown' && !e.repeat) {
+      this.paused = !this.paused;
+      return;
+    }
+    if (!this.allowed('keyboard', devId)) return;
+    if (e.type === 'keydown') this.pressed.add(vk);
+    else this.pressed.delete(vk);
   };
+
   private onMouse = (e: MouseEvent) => {
     const vk = vkFromMouseButton(e.button);
     if (vk == null) return;
-    if (e.type === 'mousedown') this.activity('mouse', vk);
-    if (!this.running || !this.allowed('mouse')) return;
-    if (e.type === 'mousedown') this.pressed.add(vk); else this.pressed.delete(vk);
+    const devId = this.resolveMouseSource(e);
+    if (e.type === 'mousedown') this.activity('mouse', vk, devId);
+    if (!this.running || !this.allowed('mouse', devId)) return;
+    if (e.type === 'mousedown') this.pressed.add(vk);
+    else this.pressed.delete(vk);
   };
+
   private onWheel = (e: WheelEvent) => {
     const vk = e.deltaY < 0 ? 0x100 : 0x101;
-    this.activity('mouse', vk);
-    if (!this.running || !this.allowed('mouse')) return;
+    const devId = this.resolveMouseSource(e);
+    this.activity('mouse', vk, devId);
+    if (!this.running || !this.allowed('mouse', devId)) return;
     this.wheel.set(vk, performance.now() + 40);
   };
 
@@ -423,6 +526,13 @@ export const bridge = {
   async onDeviceActivity(cb: Listener<DeviceActivity>): Promise<UnlistenFn> {
     if (isTauri) return listen<DeviceActivity>('device-activity', (e) => cb(e.payload));
     return mock!.onActivity(cb);
+  },
+
+  /** Dispara una actividad simulada de prueba para un dispositivo concreto */
+  simulateDeviceActivity(id: string, kind: 'mouse' | 'keyboard', vk: number | null = null): void {
+    if (!isTauri && mock) {
+      mock.activity(kind, vk, id);
+    }
   },
 
   /** Se dispara al conectar o desconectar un teclado/ratón. */

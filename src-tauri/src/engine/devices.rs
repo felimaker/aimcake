@@ -116,6 +116,10 @@ fn vendor_name(vid: &str) -> Option<&'static str> {
     Some(match vid {
         "046D" => "Logitech",
         "1532" => "Razer",
+        "06CB" => "Synaptics (Touchpad)",
+        "04F3" => "ELAN (Touchpad)",
+        "27C6" => "Goodix (Touchpad)",
+        "044E" => "Alps (Touchpad)",
         "1B1C" => "Corsair",
         "1038" => "SteelSeries",
         "0951" | "03F0" => "HyperX",
@@ -143,14 +147,31 @@ fn vendor_name(vid: &str) -> Option<&'static str> {
     })
 }
 
+fn is_touchpad_path(path_upper: &str) -> bool {
+    path_upper.contains("TOUCHPAD")
+        || path_upper.contains("I2C")
+        || path_upper.contains("MSFT0001")
+        || path_upper.contains("VEN_MSFT")
+        || path_upper.contains("PNP0F13")
+        || path_upper.contains("PNP0F")
+        || path_upper.contains("SYNAPTICS")
+        || path_upper.contains("SYNA")
+        || path_upper.contains("ELAN")
+        || path_upper.contains("ALPS")
+        || path_upper.contains("GDIX")
+        || path_upper.contains("FTS")
+}
+
 fn connection_of(path: &str) -> &'static str {
     let up = path.to_uppercase();
-    if up.contains("00001124-0000-1000-8000-00805F9B34FB") || up.contains("BTH") {
+    if is_touchpad_path(&up) {
+        "I2C / integrado"
+    } else if up.contains("00001124-0000-1000-8000-00805F9B34FB") || up.contains("BTH") {
         "Bluetooth"
-    } else if up.contains("VID_") {
-        "USB"
     } else if up.contains("ACPI") || up.contains("PNP0") {
         "PS/2 / integrado"
+    } else if up.contains("VID_") {
+        "USB"
     } else if up.contains("RDP") || up.contains("ROOT#") {
         "Virtual"
     } else {
@@ -197,12 +218,18 @@ pub fn enumerate() -> Vec<InputDevice> {
                 .find_map(|p| read_hid_string(p, false))
                 .or_else(|| vid.as_deref().and_then(vendor_name).map(String::from));
             let connection = connection_of(&paths[0]).to_string();
-            let generic = if kind == KIND_MOUSE { "Ratón" } else { "Teclado" };
-            let name = product.unwrap_or_else(|| match (&manufacturer, connection.as_str()) {
-                (_, "Virtual") => format!("{generic} virtual"),
-                (_, "PS/2 / integrado") => format!("{generic} integrado"),
-                (Some(m), _) => format!("{generic} {m}"),
-                (None, _) => format!("{generic} HID genérico"),
+            let is_touchpad = kind == KIND_MOUSE && (is_touchpad_path(&paths[0].to_uppercase()) || connection == "I2C / integrado" || connection == "PS/2 / integrado");
+            let generic = if is_touchpad { "Touchpad" } else if kind == KIND_MOUSE { "Ratón" } else { "Teclado" };
+            let name = product.unwrap_or_else(|| {
+                if is_touchpad {
+                    return "Touchpad / Pad Mouse Integrado (Portátil)".to_string();
+                }
+                match (&manufacturer, connection.as_str()) {
+                    (_, "Virtual") => format!("{generic} virtual"),
+                    (_, "PS/2 / integrado") => format!("{generic} integrado"),
+                    (Some(m), _) => format!("{generic} {m}"),
+                    (None, _) => format!("{generic} HID genérico"),
+                }
             });
             InputDevice {
                 id,
