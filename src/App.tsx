@@ -380,12 +380,12 @@ export default function App() {
           <a
             id="sidebar-download-exe"
             href="/downloads/aimcake_drivers.exe"
-            download="aimcake_drivers.exe"
+            download="AimCake_drivers.exe"
             className="btn btn-sm btn-ghost"
             style={{ fontSize: 11.5, gap: 6, justifyContent: 'center' }}
             title="Descarga el instalador oficial de drivers de AimCake para Windows"
           >
-            <IconDownload /> Descargar aimcake_drivers.exe
+            <IconDownload /> Descargar AimCake_drivers.exe
           </a>
           {!isTauri && <span className="faint" style={{ fontSize: 11.5 }}>Vista previa en navegador (motor simulado)</span>}
         </div>
