@@ -4,7 +4,7 @@ import { keyName } from '../lib/keys';
 import { CONTROLLER_BY_ID } from '../lib/controllers';
 import { bridge } from '../services/tauriBridge';
 import ControllerPicker from './ControllerPicker';
-import { IconAlert, IconCheck, IconGamepad, IconKeyboard, IconMouse, IconRadar, IconRefresh, IconShield } from './Icons';
+import { IconAlert, IconCheck, IconGamepad, IconKeyboard, IconMouse, IconRadar, IconRefresh } from './Icons';
 
 interface Props {
   settings: EngineSettings;
@@ -104,44 +104,14 @@ export default function DevicesView({ settings, onChange, toast }: Props) {
         </div>
 
         {detecting === kind && (
-          <div className="alert info" style={{ marginBottom: 12, flexDirection: 'column', alignItems: 'stretch', gap: 10 }}>
-            <div className="row" style={{ gap: 8 }}>
-              <IconRadar />
-              <strong>{kind === 'keyboard' ? 'Detección de Teclado' : 'Asistente de Detección de Ratón'}</strong>
-            </div>
-            <p style={{ margin: 0, fontSize: 13 }}>
+          <div className="alert info" style={{ marginBottom: 12 }}>
+            <IconRadar />
+            <span>
               {kind === 'keyboard'
-                ? 'Pulsa cualquier tecla en tu teclado para detectarlo, o pulsa en él directamente abajo.'
-                : 'Mueve o haz clic con tu ratón físico (o desliza el touchpad). También puedes asignarlo con un clic:'}
-            </p>
-            {kind === 'mouse' && (
-              <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
-                <button
-                  type="button"
-                  className="btn btn-sm btn-primary"
-                  onClick={() => {
-                    onChange({ ...settings, mice: ['mouse:046D:B023'] });
-                    setDetecting(null);
-                    detectRef.current = null;
-                    toast('success', 'Ratón Logitech (Bluetooth) asignado con éxito.');
-                  }}
-                >
-                  <IconMouse /> Usar Ratón Logitech (Bluetooth)
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-sm btn-ghost"
-                  onClick={() => {
-                    onChange({ ...settings, mice: ['mouse:acpi\\touchpad'] });
-                    setDetecting(null);
-                    detectRef.current = null;
-                    toast('info', 'Touchpad Integrado asignado.');
-                  }}
-                >
-                  Usar Touchpad Integrado
-                </button>
-              </div>
-            )}
+                ? 'Pulsa cualquier tecla en el teclado que quieres usar.'
+                : 'Mueve o haz clic con tu ratón Bluetooth Logitech (o desliza el touchpad).'}
+              {' '}Se seleccionará automáticamente.
+            </span>
           </div>
         )}
 
@@ -172,7 +142,7 @@ export default function DevicesView({ settings, onChange, toast }: Props) {
                 <div className="dev-info">
                   <div className="row" style={{ gap: 8, alignItems: 'center' }}>
                     <strong title={d.name}>{d.name}</strong>
-                    {on && <span className="chip ok xs"><IconCheck /> Activo para Aim Assist</span>}
+                    {on && <span className="chip ok xs"><IconCheck /> Activo</span>}
                     {isBlocked && (
                       <span className="chip xs" style={{ opacity: 0.75, color: 'var(--danger)', borderColor: 'rgba(255,92,108,0.3)', background: 'rgba(255,92,108,0.06)' }}>
                         🚫 Aislado
@@ -194,14 +164,7 @@ export default function DevicesView({ settings, onChange, toast }: Props) {
                     )}
                   </span>
                 </div>
-                <div className="row" style={{ marginLeft: 'auto', gap: 8, alignItems: 'center' }}>
-                  {on ? (
-                    <span className="chip ok sm"><IconCheck /> Asignado</span>
-                  ) : (
-                    <span className="btn btn-sm btn-primary">Elegir</span>
-                  )}
-                  <span className={`dev-check radio ${on ? 'on' : ''}`}><IconCheck /></span>
-                </div>
+                <span className={`dev-check radio ${on ? 'on' : ''}`}><IconCheck /></span>
               </button>
             );
           })}
@@ -254,39 +217,11 @@ export default function DevicesView({ settings, onChange, toast }: Props) {
         {column('mouse')}
       </div>
 
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 16,
-        padding: '16px 20px',
-        borderRadius: 16,
-        background: 'linear-gradient(135deg, hsl(142 88% 52% / 0.08) 0%, hsl(222 24% 8% / 0.95) 100%)',
-        border: '1px solid hsl(142 88% 52% / 0.3)',
-        boxShadow: '0 8px 24px -6px hsl(142 88% 52% / 0.15)',
-      }}>
-        <div style={{
-          width: 42,
-          height: 42,
-          borderRadius: 12,
-          display: 'grid',
-          placeItems: 'center',
-          background: 'hsl(142 88% 52% / 0.15)',
-          color: 'var(--accent)',
-          border: '1px solid hsl(142 88% 52% / 0.3)',
-          flexShrink: 0,
-        }}>
-          <IconShield style={{ width: 22, height: 22 }} />
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <strong style={{ fontSize: 14.5, color: 'var(--text)' }}>
-            Filtro de Aislamiento Activo (1 Ratón + 1 Teclado)
-          </strong>
-          <span className="faint" style={{ fontSize: 13 }}>
-            {chosenMouse
-              ? `Aim Assist solo responde a las entradas de «${chosenMouse.name}». Las demás fuentes de ratón (como el Touchpad) quedan aisladas para garantizar cero interferencias durante el juego.`
-              : 'Selecciona tu ratón arriba para activar el filtro de aislamiento 1:1.'}
-          </span>
-        </div>
+      <div className="alert info">
+        <IconAlert />
+        <span>
+          <strong>Aislamiento estricto activado:</strong> {chosenMouse ? `Aim Assist solo responderá a las entradas de «${chosenMouse.name}». Las demás fuentes de ratón permanecen aisladas para garantizar cero interferencias.` : 'Selecciona un ratón arriba para activar el filtro de aislamiento.'}
+        </span>
       </div>
     </div>
   );
