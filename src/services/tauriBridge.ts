@@ -4,7 +4,18 @@
  */
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
-import type { DeviceActivity, DriverInstallResult, EngineSettings, EngineStatus, GamepadSnapshot, InputDevice, LicensePayload } from '../types';
+import type {
+  BrowserVerificationState,
+  DeviceActivity,
+  DriverInstallResult,
+  EngineSettings,
+  EngineStatus,
+  GamepadSnapshot,
+  InputDevice,
+  LicensePayload,
+  SoftwarePackageId,
+  SoftwarePackageState,
+} from '../types';
 import { DEFAULT_SETTINGS, StickProcessor } from '../lib/curve';
 import { vkFromKeyboardEvent, vkFromMouseButton } from '../lib/keys';
 import { XB } from '../types';
@@ -174,7 +185,81 @@ function mockHwid(): string {
 const MOCK_PROFILES_KEY = 'xcb.profiles.v1';
 /** Vista previa: estado simulado del driver (empieza sin instalar para probar el checklist). */
 const MOCK_DRIVER_KEY = 'xcb.mockDriver';
+const PACKAGES_KEY = 'aimcake.packages.v1';
+const BROWSER_AUTH_KEY = 'aimcake.browserAuthorized.v1';
+
 const mockDriverOk = () => localStorage.getItem(MOCK_DRIVER_KEY) === '1';
+
+const DEFAULT_PACKAGES: Record<SoftwarePackageId, SoftwarePackageState> = {
+  vcredist: { downloaded: false, verified: false },
+  vigembus: { downloaded: false, verified: false },
+  aimcake_drivers: { downloaded: false, verified: false },
+  aimcake_bridge: { downloaded: false, verified: false },
+};
+
+function loadStoredPackages(): Record<SoftwarePackageId, SoftwarePackageState> {
+  try {
+    const raw = localStorage.getItem(PACKAGES_KEY);
+    if (raw) return { ...DEFAULT_PACKAGES, ...JSON.parse(raw) };
+  } catch {}
+  return { ...DEFAULT_PACKAGES };
+}
+
+function saveStoredPackages(pkgs: Record<SoftwarePackageId, SoftwarePackageState>) {
+  try {
+    localStorage.setItem(PACKAGES_KEY, JSON.stringify(pkgs));
+  } catch {}
+}
+
+async function detectBrowserVerification(): Promise<BrowserVerificationState> {
+  const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
+  const isWindows = /Windows/i.test(ua);
+  const is64 = /Win64|x64|WOW64/i.test(ua) || (typeof navigator !== 'undefined' && (navigator as any).userAgentData?.architecture === 'x86_64');
+  const osName = isWindows ? (is64 ? 'Windows 10 / 11 (64-bit)' : 'Windows (32-bit)') : 'No-Windows (Se requiere Windows)';
+  const arch = is64 ? 'x64' : 'x86';
+  const webHidSupported = typeof navigator !== 'undefined' && 'hid' in navigator;
+
+  let authorizedDevicesCount = 0;
+  let authorizedDeviceNames: string[] = [];
+
+  if (webHidSupported) {
+    try {
+      const devices = await (navigator as any).hid.getDevices();
+      authorizedDevicesCount = devices.length;
+      authorizedDeviceNames = devices.map((d: any) => d.productName || `Dispositivo VID:${d.vendorId?.toString(16)}`);
+    } catch {}
+  }
+
+  let gamepadDetected = false;
+  let gamepadNames: string[] = [];
+  if (typeof navigator !== 'undefined' && typeof navigator.getGamepads === 'function') {
+    try {
+      const pads = navigator.getGamepads();
+      for (let i = 0; i < pads.length; i++) {
+        const gp = pads[i];
+        if (gp) {
+          gamepadDetected = true;
+          gamepadNames.push(gp.id || `Mando #${i}`);
+        }
+      }
+    } catch {}
+  }
+
+  const userAuthorized = localStorage.getItem(BROWSER_AUTH_KEY) === '1' || authorizedDevicesCount > 0 || gamepadDetected;
+
+  return {
+    isWindows,
+    osName,
+    arch,
+    webHidSupported,
+    browserAuthorized: userAuthorized,
+    authorizedDevicesCount,
+    authorizedDeviceNames,
+    gamepadDetected,
+    gamepadNames,
+    packages: loadStoredPackages(),
+  };
+}
 
 /* ------------------------------------------------------------------ */
 /* API pública                                                          */
@@ -185,13 +270,81 @@ export const bridge = {
   },
 
   async getStatus(): Promise<EngineStatus> {
-    if (isTauri) return invoke<EngineStatus>('get_engine_status');
-    const ok = mockDriverOk();
+    const verif = await detectBrowserVerification();
+    if (isTauri) {
+      const s = await invoke<EngineStatus>('get_engine_status');
+      return {
+        ...s,
+        verification: verif,
+      };
+    }
+    const pkgs = verif.packages;
+    const allPkgsVerified = Boolean(
+      pkgs.vcredist?.verified &&
+      pkgs.vigembus?.verified &&
+      pkgs.aimcake_drivers?.verified &&
+      pkgs.aimcake_bridge?.verified
+    );
+
     return {
       running: mock!.running, paused: mock!.paused,
-      driverOk: ok, driverError: ok ? null : 'Drivers de AimCake no disponibles: NotInstalled (simulado)',
+      driverOk: allPkgsVerified,
+      driverError: allPkgsVerified ? null : 'Faltan paquetes de software por instalar y verificar en Windows.',
       driverInstaller: true, captureOk: true, captureError: null, isDebug: true,
+      verification: verif,
     };
+  },
+
+  /** Solicita autorización oficial al navegador (WebHID / Gamepad API) para verificar el hardware de Windows */
+  async requestBrowserAuthorization(): Promise<BrowserVerificationState> {
+    localStorage.setItem(BROWSER_AUTH_KEY, '1');
+    if (typeof navigator !== 'undefined' && 'hid' in navigator) {
+      try {
+        const dev = await (navigator as any).hid.requestDevice({ filters: [] });
+        if (dev && dev.length) {
+          localStorage.setItem(BROWSER_AUTH_KEY, '1');
+        }
+      } catch (err: any) {
+        console.warn('WebHID prompt:', err?.message || err);
+      }
+    }
+    return detectBrowserVerification();
+  },
+
+  /** Registra que el usuario descargó un paquete requerido */
+  recordPackageDownload(pkgId: SoftwarePackageId): void {
+    const pkgs = loadStoredPackages();
+    pkgs[pkgId] = {
+      ...pkgs[pkgId],
+      downloaded: true,
+      verified: pkgs[pkgId]?.verified ?? false,
+    };
+    saveStoredPackages(pkgs);
+  },
+
+  /** Registra la descarga de todos los paquetes */
+  recordAllPackagesDownloaded(): void {
+    const pkgs = loadStoredPackages();
+    for (const key of Object.keys(pkgs) as SoftwarePackageId[]) {
+      pkgs[key] = {
+        ...pkgs[key],
+        downloaded: true,
+      };
+    }
+    saveStoredPackages(pkgs);
+  },
+
+  /** Marca o desmarca un paquete como verificado en el sistema */
+  togglePackageVerified(pkgId: SoftwarePackageId, verified?: boolean): void {
+    const pkgs = loadStoredPackages();
+    const nextVerified = verified !== undefined ? verified : !pkgs[pkgId]?.verified;
+    pkgs[pkgId] = {
+      ...pkgs[pkgId],
+      downloaded: nextVerified ? true : pkgs[pkgId]?.downloaded,
+      verified: nextVerified,
+      verifiedAt: nextVerified ? Date.now() : undefined,
+    };
+    saveStoredPackages(pkgs);
   },
 
   /** Ejecuta el instalador de drivers de AimCake incluido con la app y espera a que termine. */
@@ -199,6 +352,12 @@ export const bridge = {
     if (isTauri) return invoke<DriverInstallResult>('install_driver');
     await new Promise((r) => setTimeout(r, 2200));
     localStorage.setItem(MOCK_DRIVER_KEY, '1');
+    const pkgs = loadStoredPackages();
+    pkgs.aimcake_drivers = { downloaded: true, verified: true, verifiedAt: Date.now(), verifiedMethod: 'Instalado con éxito' };
+    pkgs.vigembus = { downloaded: true, verified: true, verifiedAt: Date.now(), verifiedMethod: 'Instalado con éxito' };
+    pkgs.vcredist = { downloaded: true, verified: true, verifiedAt: Date.now(), verifiedMethod: 'Instalado con éxito' };
+    pkgs.aimcake_bridge = { downloaded: true, verified: true, verifiedAt: Date.now(), verifiedMethod: 'Instalado con éxito' };
+    saveStoredPackages(pkgs);
     return { exitCode: 0, rebootRequired: false, cancelled: false, driverOk: true };
   },
 

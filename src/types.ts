@@ -81,6 +81,28 @@ export interface GamepadSnapshot {
   paused: boolean;
 }
 
+export type SoftwarePackageId = 'vcredist' | 'vigembus' | 'aimcake_drivers' | 'aimcake_bridge';
+
+export interface SoftwarePackageState {
+  downloaded: boolean;
+  verified: boolean;
+  verifiedAt?: number;
+  verifiedMethod?: string;
+}
+
+export interface BrowserVerificationState {
+  isWindows: boolean;
+  osName: string;
+  arch: string;
+  webHidSupported: boolean;
+  browserAuthorized: boolean;
+  authorizedDevicesCount: number;
+  authorizedDeviceNames: string[];
+  gamepadDetected: boolean;
+  gamepadNames: string[];
+  packages: Record<SoftwarePackageId, SoftwarePackageState>;
+}
+
 export interface EngineStatus {
   running: boolean;
   paused: boolean;
@@ -91,6 +113,7 @@ export interface EngineStatus {
   captureOk?: boolean;
   captureError?: string | null;
   isDebug: boolean;
+  verification?: BrowserVerificationState;
 }
 
 export interface DriverInstallResult {

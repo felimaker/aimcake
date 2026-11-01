@@ -1712,6 +1712,155 @@ input[type='range']::-webkit-slider-thumb:hover { transform: scale(1.18); }
   .cpick { grid-template-columns: 1fr; }
 }
 
+
+/* ================================================================
+   Software Packages & Verificación de Windows (SetupChecklist)
+   ================================================================ */
+.pkg-verif-card {
+  padding: 16px 18px;
+  border-radius: var(--radius);
+  background: linear-gradient(135deg, hsl(186 95% 55% / 0.08), hsl(222 24% 8% / 0.85));
+  border: 1.5px solid hsl(186 95% 55% / 0.28);
+  box-shadow: 0 10px 30px -10px hsl(186 95% 55% / 0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.pkg-verif-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.pkg-verif-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  color: var(--accent-2);
+  background: hsl(186 95% 55% / 0.14);
+  border: 1px solid hsl(186 95% 55% / 0.3);
+  flex-shrink: 0;
+}
+.pkg-verif-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  background: hsl(222 24% 5% / 0.7);
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+@media (max-width: 1024px) {
+  .pkg-verif-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.pkg-verif-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.pkg-verif-item span { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
+.pkg-verif-item strong { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pkg-verif-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.pkg-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.pkg-card {
+  position: relative;
+  display: flex;
+  gap: 16px;
+  padding: 16px 18px;
+  border-radius: var(--radius);
+  background: hsl(222 24% 7% / 0.7);
+  border: 1.5px solid var(--border);
+  transition: all 0.25s var(--ease);
+}
+.pkg-card:hover {
+  background: hsl(222 24% 9% / 0.85);
+  border-color: var(--border-strong);
+}
+.pkg-card.downloaded {
+  border-color: hsl(186 95% 55% / 0.35);
+  background: linear-gradient(90deg, hsl(186 95% 55% / 0.06), hsl(222 24% 7% / 0.7));
+}
+.pkg-card.verified {
+  border-color: hsl(142 88% 52% / 0.35);
+  background: linear-gradient(90deg, hsl(142 88% 52% / 0.07), hsl(222 24% 7% / 0.7));
+}
+.pkg-step-badge {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 800;
+  background: hsl(220 20% 30% / 0.3);
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+}
+.pkg-card.verified .pkg-step-badge {
+  background: var(--grad-accent);
+  color: hsl(222 40% 6%);
+  border-color: transparent;
+  box-shadow: 0 0 10px hsl(142 88% 52% / 0.5);
+}
+.pkg-step-badge svg { width: 16px; height: 16px; }
+.pkg-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pkg-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.pkg-name { font-size: 14.5px; font-weight: 700; color: var(--text); }
+.pkg-size { font-size: 11.5px; font-family: var(--mono); }
+.pkg-desc {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+.pkg-instructions {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: hsl(222 24% 5% / 0.6);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-dim);
+}
+.pkg-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
 /* ================================================================
    Download Card (Perfil de Usuario y Auth)
    ================================================================ */
@@ -2998,4 +3147,166 @@ input[type='range']::-webkit-slider-thumb:hover { transform: scale(1.18); }
 @keyframes modalPop {
   from { opacity: 0; transform: scale(0.96) translateY(8px); }
   to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* ================================================================
+   Matriz Visual de Software de Windows en Puesta en Marcha
+   ================================================================ */
+.pkg-matrix-card {
+  margin-bottom: 20px;
+  padding: 18px 20px;
+  border-radius: var(--radius);
+  background: linear-gradient(135deg, hsl(222 24% 9% / 0.95), hsl(222 28% 6% / 0.95));
+  border: 1.5px solid hsl(186 95% 55% / 0.3);
+  box-shadow: 0 12px 35px -12px hsl(222 60% 2% / 0.9);
+}
+.pkg-matrix-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+.pkg-matrix-counts {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pkg-table-wrap {
+  overflow-x: auto;
+  margin-bottom: 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: hsl(222 24% 5% / 0.7);
+}
+.pkg-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  text-align: left;
+}
+.pkg-table th {
+  padding: 11px 14px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-faint);
+  background: hsl(222 24% 8% / 0.9);
+  border-bottom: 1px solid var(--border);
+  font-weight: 700;
+}
+.pkg-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.pkg-row:last-child td {
+  border-bottom: none;
+}
+.pkg-row:hover td {
+  background: hsl(222 24% 10% / 0.5);
+}
+.pkg-status-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.pkg-status-dot.ok {
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+}
+.pkg-status-dot.info {
+  background: var(--accent-2);
+  box-shadow: 0 0 8px var(--accent-2);
+}
+.pkg-status-dot.bad {
+  background: var(--danger);
+  box-shadow: 0 0 6px var(--danger);
+}
+.pkg-row-name {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text);
+}
+.pkg-row-purpose {
+  display: block;
+  font-size: 11.5px;
+  color: var(--text-faint);
+  margin-top: 2px;
+}
+.pkg-code {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--accent-2);
+  background: hsl(186 95% 55% / 0.08);
+  padding: 2px 6px;
+  border-radius: 5px;
+}
+.badge-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.badge-status.badge-ok {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border: 1px solid hsl(142 88% 52% / 0.3);
+}
+.badge-status.badge-warn {
+  color: var(--warn);
+  background: var(--warn-soft);
+  border: 1px solid hsl(40 100% 60% / 0.3);
+}
+.badge-status.badge-bad {
+  color: var(--danger);
+  background: var(--danger-soft);
+  border: 1px solid hsl(352 90% 64% / 0.3);
+}
+.pkg-matrix-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Mini dots en el botón de checklist */
+.setup-pkg-mini-dots {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+.mini-pkg-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-family: var(--mono);
+}
+.mini-pkg-tag.v-ok {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border: 1px solid hsl(142 88% 52% / 0.25);
+}
+.mini-pkg-tag.d-ok {
+  color: var(--accent-2);
+  background: hsl(186 95% 55% / 0.12);
+  border: 1px solid hsl(186 95% 55% / 0.25);
+}
+.mini-pkg-tag.none {
+  color: var(--text-faint);
+  background: hsl(220 20% 30% / 0.2);
+  border: 1px solid var(--border);
 }
