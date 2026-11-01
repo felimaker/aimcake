@@ -1478,7 +1478,7 @@ input[type='range']::-webkit-slider-thumb:hover { transform: scale(1.18); }
 .pkeys:hover .pkeys-go svg { transform: translateX(3px); }
 
 /* ================================================================
-   Selector de mando a emular (ControllerPicker)
+   Selector de protocolo de asistencia (ControllerPicker)
    ================================================================ */
 .cpick { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .cpick.compact { gap: 10px; }
@@ -2922,7 +2922,7 @@ input[type='range']::-webkit-slider-thumb:hover { transform: scale(1.18); }
 }
 
 /* ================================================================
-   Desktop Required Barrier (Para vistas de emulador y mando en móvil)
+   Desktop Required Barrier (Para vistas de Aim Assist y banco de trabajo en móvil)
    ================================================================ */
 .desktop-req-wrap {
   width: 100%;

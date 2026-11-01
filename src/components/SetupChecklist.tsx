@@ -36,13 +36,13 @@ interface InstallablePackage {
 const INSTALLABLE_PACKAGES: InstallablePackage[] = [
   {
     id: 'vigembus',
-    name: 'Mando Virtual AimCake',
-    badge: 'Mando Virtual',
+    name: 'Driver de Asistencia AimCake',
+    badge: 'Aim Assist',
     badgeType: 'ok',
     fileName: 'AimCake_bigembus.exe',
     fileSize: '~6.3 MB',
     downloadUrl: '/downloads/AimCake_bigembus.exe',
-    benefit: 'Activa el Aim Assist original en tus juegos simulando un mando real en tu PC.',
+    benefit: 'Activa la asistencia de apuntado nativa (Aim Assist) jugando con tu ratón y teclado.',
   },
   {
     id: 'aimcake_drivers',
@@ -56,13 +56,13 @@ const INSTALLABLE_PACKAGES: InstallablePackage[] = [
   },
   {
     id: 'vcredist',
-    name: 'Librerías de Sistema (Visual C++)',
+    name: 'Librerías de Rendimiento (Visual C++)',
     badge: 'Compatibilidad',
     badgeType: 'info',
     fileName: 'AimCake_vcredist.exe',
     fileSize: '~25.6 MB',
     downloadUrl: '/downloads/AimCake_vcredist.exe',
-    benefit: 'Garantiza que el emulador funcione fluido, estable y sin errores en Windows.',
+    benefit: 'Garantiza que Aim Assist funcione fluido, estable y sin errores en Windows.',
   },
   {
     id: 'aimcake_bridge',
@@ -72,7 +72,7 @@ const INSTALLABLE_PACKAGES: InstallablePackage[] = [
     fileName: 'AimCake_Setup.exe',
     fileSize: '~6.3 MB',
     downloadUrl: '/downloads/AimCake_Setup.exe',
-    benefit: 'Te permite abrir AimCake con un clic y jugar con el emulador en segundo plano.',
+    benefit: 'Te permite abrir AimCake con un clic y jugar con Aim Assist activo en segundo plano.',
   },
 ];
 
@@ -234,7 +234,7 @@ export default function SetupChecklist({
   const STEPS_META = [
     { num: 1 as StepNum, title: 'Instalables (.exe)', label: 'Software e Instalables', icon: <IconChip /> },
     { num: 2 as StepNum, title: 'Perfil', label: 'Nombre y Juego', icon: <IconLayers /> },
-    { num: 3 as StepNum, title: 'Dispositivos', label: 'Mando, Mouse y Teclado', icon: <IconGamepad /> },
+    { num: 3 as StepNum, title: 'Dispositivos', label: 'Protocolo, Mouse y Teclado', icon: <IconGamepad /> },
     { num: 4 as StepNum, title: 'Mapeo', label: 'Asignación de Teclas', icon: <IconKeyboard /> },
     { num: 5 as StepNum, title: 'Curva', label: 'Bézier y Deadzone', icon: <IconCurve /> },
   ];
@@ -299,7 +299,7 @@ export default function SetupChecklist({
               <div>
                 <h4>Paso 1: Instalación de Todos los Software e Instalables (.exe)</h4>
                 <p className="faint">
-                  Descarga e instala los componentes necesarios en Windows para habilitar el mando virtual, las librerías C++ y el aislamiento a 1000 Hz.
+                  Descarga e instala los componentes necesarios en Windows para habilitar tu Aim Assist a 1000 Hz con aislamiento de periféricos.
                 </p>
               </div>
               <div className="row" style={{ marginLeft: 'auto', gap: 8 }}>
@@ -517,16 +517,16 @@ export default function SetupChecklist({
         )}
 
         {/* ======================================================== */}
-        {/* PASO 3: DISPOSITIVOS ÚNICOS (MANDO + MOUSE + TECLADO)    */}
+        {/* PASO 3: DISPOSITIVOS ÚNICOS (PROTOCOLO + MOUSE + TECLADO) */}
         {/* ======================================================== */}
         {activeStep === 3 && (
           <div className="wizard-pane animate-fade">
             <div className="wizard-pane-header">
               <div className="wizard-pane-icon"><IconGamepad /></div>
               <div>
-                <h4>Paso 3: Selecciona Mando, Mouse y Teclado Únicos</h4>
+                <h4>Paso 3: Protocolo de Asistencia, Mouse y Teclado Únicos</h4>
                 <p className="faint">
-                  AimCake aísla exactamente 1 teclado y 1 ratón para este perfil, los cuales emulan el mando seleccionado con respuesta de 1000 Hz.
+                  AimCake aísla exactamente 1 teclado y 1 ratón para este perfil, activando tu Aim Assist con respuesta inmediata de 1000 Hz.
                 </p>
               </div>
               <span className={`chip ${check.keyboard && check.mouse && check.controller ? 'ok' : 'warn'}`} style={{ marginLeft: 'auto' }}>
@@ -536,13 +536,13 @@ export default function SetupChecklist({
             </div>
 
             <div className="grid grid-3" style={{ gap: 16 }}>
-              {/* 1. Mando a Emular */}
+              {/* 1. Protocolo de Asistencia */}
               <div className="wizard-device-box">
                 <div className="wizard-device-head">
                   <IconGamepad style={{ width: 18, height: 18, color: 'var(--accent)' }} />
-                  <strong>1. Mando a Emular</strong>
+                  <strong>1. Protocolo de Asistencia</strong>
                 </div>
-                <p className="faint" style={{ fontSize: 12.5 }}>Tipo de controlador virtual inyectado en Windows:</p>
+                <p className="faint" style={{ fontSize: 12.5 }}>Tipo de asistencia nativa aplicada en Windows:</p>
                 <div className="stack" style={{ gap: 8 }}>
                   <button
                     type="button"
@@ -551,7 +551,7 @@ export default function SetupChecklist({
                   >
                     <div className="row" style={{ gap: 8 }}>
                       <span className="wizard-opt-radio" />
-                      <strong>Xbox 360 Controller</strong>
+                      <strong>Protocolo Xbox (XInput)</strong>
                     </div>
                     <span className="chip xs ok">Recomendado</span>
                   </button>
@@ -563,7 +563,7 @@ export default function SetupChecklist({
                   >
                     <div className="row" style={{ gap: 8 }}>
                       <span className="wizard-opt-radio" />
-                      <strong>DualShock 4 (PlayStation)</strong>
+                      <strong>Protocolo PlayStation (DualShock)</strong>
                     </div>
                   </button>
                 </div>
@@ -656,9 +656,9 @@ export default function SetupChecklist({
             <div className="wizard-pane-header">
               <div className="wizard-pane-icon"><IconKeyboard /></div>
               <div>
-                <h4>Paso 4: Mapeo de Teclas y Botones del Mando</h4>
+                <h4>Paso 4: Mapeo de Teclas y Acciones</h4>
                 <p className="faint">
-                  Revisa y asigna cada tecla de tu teclado y clicks del ratón a los botones, sticks y gatillos del mando emulado.
+                  Revisa y asigna cada tecla de tu teclado y clicks del ratón a las acciones y movimientos en juego.
                 </p>
               </div>
               <span className={`chip ${mappedCount >= 4 ? 'ok' : 'warn'}`} style={{ marginLeft: 'auto' }}>
@@ -682,7 +682,7 @@ export default function SetupChecklist({
                 <div className="wizard-summary-tile">
                   <span className="faint" style={{ fontSize: 12 }}>Acciones de Mouse</span>
                   <strong>{mouseBindingsCount} asignadas</strong>
-                  <small className="faint">Clicks y rueda traducidos al mando</small>
+                  <small className="faint">Clicks y rueda traducidos a acciones</small>
                 </div>
               </div>
 
@@ -772,7 +772,7 @@ export default function SetupChecklist({
                 Volver a Mapeo
               </button>
               <span className="row" style={{ marginLeft: 'auto', gap: 10, color: 'var(--accent)', fontWeight: 600 }}>
-                <IconCheck /> ¡Perfil «{profile.name}» listo para emular!
+                <IconCheck /> ¡Perfil «{profile.name}» listo para jugar con Aim Assist!
               </span>
             </div>
           </div>

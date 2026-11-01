@@ -235,7 +235,7 @@ export default function LandingPage({ user, onGoApp, onGoLogin, onGoRegister, on
           <div className="land-preview-bar">
             <div className="row" style={{ gap: 8 }}>
               <span className="dot ok" />
-              <strong>Simulador Virtual en Vivo</strong>
+              <strong>Aim Assist en Tiempo Real</strong>
             </div>
             <div className="land-ctrl-tabs">
               <button
@@ -413,7 +413,7 @@ export default function LandingPage({ user, onGoApp, onGoLogin, onGoRegister, on
         <div className="land-sec-head">
           <span className="land-eyebrow"><IconCrosshair /> Máxima Compatibilidad</span>
           <h2 className="land-sec-title">Optimizado para tus juegos favoritos</h2>
-          <p className="land-sec-sub">Compatible con cualquier juego de Windows que acepte mandos Xbox o PlayStation.</p>
+          <p className="land-sec-sub">Compatible con cualquier juego de Windows con soporte de asistencia para Xbox o PlayStation.</p>
         </div>
 
         <div className="land-games-grid">

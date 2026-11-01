@@ -69,15 +69,15 @@ export default function ProfilesView({ profiles, activeId, editingId, devices, o
       return (
         <button className="pdev missing" onClick={() => onEdit(p.id, 'devices')} id={`profile-${p.id}-pick-controller`}>
           <span className="pdev-icon"><IconGamepad /></span>
-          <span className="pdev-text"><small>Mando a emular · obligatorio</small><strong>Sin elegir</strong></span>
+          <span className="pdev-text"><small>Protocolo de Asistencia · obligatorio</small><strong>Sin elegir</strong></span>
           <span className="pdev-go">Elegir <IconArrowRight /></span>
         </button>
       );
     }
     return (
-      <button className="pdev ok pdev-ctrl" onClick={() => onEdit(p.id, 'devices')} title="Cambiar mando" style={{ ['--cc' as string]: c.accent }}>
+      <button className="pdev ok pdev-ctrl" onClick={() => onEdit(p.id, 'devices')} title="Cambiar protocolo de asistencia" style={{ ['--cc' as string]: c.accent }}>
         <span className="pdev-icon glyph"><ControllerGlyph type={c.id} size={40} /></span>
-        <span className="pdev-text"><small>Mando a emular</small><strong>{c.name}</strong><em>{c.protocol}</em></span>
+        <span className="pdev-text"><small>Protocolo de Asistencia</small><strong>{c.name}</strong><em>{c.protocol}</em></span>
         <span className="pdev-state on"><IconCheck /></span>
       </button>
     );
@@ -126,10 +126,10 @@ export default function ProfilesView({ profiles, activeId, editingId, devices, o
       <div className="row-between">
         <div className="stack" style={{ gap: 6, maxWidth: 740 }}>
           <p className="muted" style={{ margin: 0 }}>
-            Cada perfil guarda <strong style={{ color: 'var(--text)' }}>todo el setup</strong>: mando a emular, teclado, ratón, teclas asignadas, curva, frecuencia y tecla de pausa.
+            Cada perfil guarda <strong style={{ color: 'var(--text)' }}>todo el setup</strong>: protocolo de asistencia, teclado, ratón, teclas asignadas, curva, frecuencia y tecla de pausa.
           </p>
           <p className="faint" style={{ margin: 0, fontSize: 13 }}>
-            <IconAlert style={{ width: 14, verticalAlign: '-2px' }} /> Para activar un perfil son <strong className="muted">obligatorios</strong> el mando, un teclado, un ratón y al menos una tecla asignada.
+            <IconAlert style={{ width: 14, verticalAlign: '-2px' }} /> Para activar un perfil son <strong className="muted">obligatorios</strong> el protocolo de asistencia, un teclado, un ratón y al menos una tecla asignada.
             {' '}{readyCount}/{profiles.length} perfiles listos.
           </p>
         </div>

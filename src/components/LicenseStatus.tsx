@@ -178,7 +178,7 @@ export default function LicenseStatus({ hwid, license, isDebug, onGoAccount, acc
           <div className="card-title" style={{ color: 'var(--accent)' }}>Plan Pro Mensual</div>
           <div className="plan-price">$15<small> USD / mes</small></div>
           <ul>
-            <li><IconCheck /> Emulación Xbox 360 y DualShock 4 a 1000 Hz</li>
+            <li><IconCheck /> Aim Assist rotacional nativo a 1000 Hz</li>
             <li><IconCheck /> Curvas cinemáticas Bézier y perfiles ilimitados</li>
             <li><IconCheck /> Aislamiento de 1 teclado y 1 ratón exclusivos</li>
             <li><IconCheck /> 3 días de prueba gratis (+3 días extra con celular)</li>

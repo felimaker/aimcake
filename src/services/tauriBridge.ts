@@ -106,7 +106,7 @@ class MockEngine {
   }
 
   start() {
-    if (this.running) throw new Error('La emulación ya está en ejecución.');
+    if (this.running) throw new Error('El sistema de Aim Assist ya está en ejecución.');
     this.running = true;
     this.paused = false;
     this.stick = new StickProcessor(this.settings.config);
@@ -120,7 +120,7 @@ class MockEngine {
     }, 16);
   }
 
-  stop(reason = 'Emulación detenida') {
+  stop(reason = 'Aim Assist detenido') {
     if (!this.running) return;
     this.running = false;
     clearInterval(this.timer);
@@ -373,13 +373,13 @@ export const bridge = {
     await this.verifyLicense(tokenJson, sig);
     if (!mockDriverOk()) throw new Error('No se pudo conectar a los drivers de AimCake. Instálalos desde el Panel (paso 1).');
     mock!.start();
-    return `Emulación simulada a ${mock!.settings.pollingHz} Hz (vista previa en navegador)`;
+    return `Aim Assist activo a ${mock!.settings.pollingHz} Hz (modo navegador)`;
   },
 
   async stop(): Promise<string> {
     if (isTauri) return invoke<string>('stop_emulation');
     mock!.stop();
-    return 'Emulación detenida';
+    return 'Aim Assist detenido';
   },
 
   async updateSettings(settings: EngineSettings): Promise<void> {

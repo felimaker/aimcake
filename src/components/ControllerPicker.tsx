@@ -55,10 +55,10 @@ interface Props {
   compact?: boolean;
 }
 
-/** Selector del mando a emular (uno por perfil). */
+/** Selector del protocolo de asistencia (uno por perfil). */
 export default function ControllerPicker({ value, onChange, compact }: Props) {
   return (
-    <div className={`cpick ${compact ? 'compact' : ''}`} role="radiogroup" aria-label="Mando a emular">
+    <div className={`cpick ${compact ? 'compact' : ''}`} role="radiogroup" aria-label="Protocolo de Asistencia">
       {CONTROLLERS.map((c) => {
         const on = value === c.id;
         return (

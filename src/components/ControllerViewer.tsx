@@ -161,7 +161,7 @@ export function ControllerGraphic({ state, selected, onPick, rsLabel = 'RS · RA
 function ControllerViewer({ state }: Props) {
   return (
     <div className="controller-wrap">
-      <svg className="controller-svg" viewBox="0 0 640 430" role="img" aria-label="Vista en vivo del mando virtual Xbox 360">
+      <svg className="controller-svg" viewBox="0 0 640 430" role="img" aria-label="Vista en vivo de telemetría y botones Xbox 360">
         <ControllerDefs />
         <ControllerGraphic state={state} />
       </svg>

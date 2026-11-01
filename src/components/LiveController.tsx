@@ -4,7 +4,7 @@ import { XB } from '../types';
 
 interface Props {
   state: GamepadSnapshot;
-  /** Mando virtual conectado (emulando). */
+  /** Aim Assist conectado y activo. */
   connected: boolean;
   /** Stick al que va el movimiento del ratón (se etiqueta en la telemetría). */
   mouseStick?: 'LS' | 'RS' | 'NONE';
@@ -98,7 +98,7 @@ function LiveController({ state, connected, mouseStick = 'RS' }: Props) {
     <div className={`lc ${connected ? 'connected' : 'off'} ${state.paused ? 'paused' : ''}`}>
       <div className="lc-stage">
         <div className="lc-halo" />
-        <svg className="lc-svg" viewBox="0 0 640 440" role="img" aria-label="Vista en vivo del mando virtual Xbox 360">
+        <svg className="lc-svg" viewBox="0 0 640 440" role="img" aria-label="Vista en vivo de telemetría y botones Xbox 360">
           <defs>
             <linearGradient id={id('body')} x1="0" y1="0" x2="0" y2="1">
               <stop offset="0" stopColor="hsl(222 14% 23%)" />
@@ -200,7 +200,7 @@ function LiveController({ state, connected, mouseStick = 'RS' }: Props) {
           {/* LED de estado */}
           <circle cx={320} cy={100} r={2.5} className="lc-led" />
         </svg>
-        {!connected && <div className="lc-overlay"><span>Mando virtual desconectado</span></div>}
+        {!connected && <div className="lc-overlay"><span>Aim Assist no iniciado</span></div>}
         {connected && state.paused && <div className="lc-overlay paused"><span>En pausa</span></div>}
       </div>
 

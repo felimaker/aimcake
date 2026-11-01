@@ -341,12 +341,12 @@ export default function MappingView({ settings, onChange, live }: Props) {
               <span className="keycap big">{keyName(settings.pauseHotkey)}</span>
               <button id="change-pause" className="btn btn-sm" onClick={() => setCapture('pause')}>Cambiar</button>
             </div>
-            <span className="slider-hint">Pausa/reanuda la emulación sin desconectar el mando.</span>
+            <span className="slider-hint">Pausa o reanuda el Aim Assist de inmediato con un solo toque.</span>
           </div>
           <label className="toggle" htmlFor="suppress-toggle" style={{ padding: 0, alignItems: 'flex-start' }}>
             <span className="toggle-text">
               <strong>Bloquear teclas mapeadas</strong>
-              <span>El juego no recibe la tecla, solo el botón del mando.</span>
+              <span>El juego no recibe la pulsación original de teclado, solo la acción asignada.</span>
             </span>
             <button
               id="suppress-toggle"

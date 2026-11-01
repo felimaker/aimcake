@@ -168,10 +168,10 @@ export default function DevicesView({ settings, onChange, toast }: Props) {
     <div className="stack" style={{ gap: 18 }}>
       <section className="card" id="controller-card">
         <div className="card-title">
-          <span className="row"><IconGamepad style={{ width: 16 }} /> Mando a emular
+          <span className="row"><IconGamepad style={{ width: 16 }} /> Protocolo de Asistencia
             {ctrl ? <span className="chip ok sm" style={{ marginLeft: 6 }}><IconCheck /> {ctrl.name}</span> : <span className="chip warn sm" style={{ marginLeft: 6 }}>Elige 1</span>}
           </span>
-          <span className="faint" style={{ fontSize: 12.5 }}>Es lo que verá Windows y el juego</span>
+          <span className="faint" style={{ fontSize: 12.5 }}>Protocolo de compatibilidad nativa para el juego</span>
         </div>
         <ControllerPicker value={settings.controller} onChange={(controller) => onChange({ ...settings, controller })} />
         {ctrl?.note && <p className="faint cpick-note"><IconAlert /> {ctrl.note}</p>}
@@ -180,7 +180,7 @@ export default function DevicesView({ settings, onChange, toast }: Props) {
       <div className="row-between">
         <p className="muted" style={{ margin: 0, maxWidth: 760 }}>
           Selecciona <strong style={{ color: 'var(--text)' }}>exactamente un teclado y un ratón exclusivos</strong>. 
-          Solo estos dos dispositivos controlarán el mando emulado; cualquier otro teclado o ratón secundario conectado a la PC seguirá funcionando de forma independiente en Windows sin interferir en el juego.
+          Solo estos dos dispositivos recibirán la asistencia de puntería; cualquier otro teclado o ratón secundario conectado a la PC seguirá funcionando de forma independiente en Windows sin interferir en el juego.
         </p>
         <button id="devices-refresh" className="btn btn-sm" onClick={refresh} disabled={loading}>
           {loading ? <span className="spinner" /> : <IconRefresh />} Actualizar lista
@@ -193,8 +193,8 @@ export default function DevicesView({ settings, onChange, toast }: Props) {
       <div className="alert info">
         <IconAlert />
         <span>
-          <strong>Aislamiento estricto activado:</strong> La emulación solo responderá a las entradas del ratón y teclado elegidos arriba.
-          El monitor en vivo en la bandeja del sistema (junto al reloj de Windows) te indicará en todo momento si el sistema está activo o en pausa.
+          <strong>Aislamiento estricto activado:</strong> Aim Assist solo responderá a las entradas del ratón y teclado elegidos arriba.
+          El monitor en vivo en la bandeja del sistema (junto al reloj de Windows) te indicará en todo momento si la asistencia está activa o en pausa.
         </span>
       </div>
     </div>

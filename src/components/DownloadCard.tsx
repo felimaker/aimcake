@@ -42,8 +42,8 @@ export default function DownloadCard({ userEmail, compact, onRequireLogin }: Pro
 
           <h3 className="dl-title">Drivers de AimCake para Windows PC</h3>
           <p className="dl-sub">
-            Instalador oficial para Windows 10 y Windows 11. Instala los controladores necesarios para que tus juegos
-            reconozcan el mando virtual y puedas disfrutar del Aim Assist original con ratón y teclado.
+            Instalador oficial para Windows 10 y Windows 11. Instala los componentes de alta velocidad necesarios
+            para activar el Aim Assist original y rotacional con tu ratón y teclado a 1000 Hz.
           </p>
 
           <div className="dl-actions">

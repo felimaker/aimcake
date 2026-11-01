@@ -1,4 +1,4 @@
-# AimCake 🎂 · Native Aim Assist & 1000 Hz Virtual Controller System
+# AimCake 🎂 · Native Aim Assist & 1000 Hz Professional Gaming System
 
 <p align="center">
   <img src="public/cake-icon.svg" alt="AimCake Logo" width="120" height="120" style="border-radius: 28px;" />
@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>Juega con Teclado y Ratón recuperando el Aim Assist Original de Mando a 1000 Hz.</strong><br>
-  Plataforma de emulación de mando virtual ultra-rápida, calibración cinemática Bézier y sincronización de perfiles en la nube.
+  Plataforma de Aim Assist profesional para shooters, calibración cinemática Bézier y sincronización de perfiles en la nube.
 </p>
 
 <p align="center">
@@ -24,20 +24,20 @@
 En los videojuegos competitivos modernos (*Call of Duty: Warzone*, *Modern Warfare III / Black Ops 6*, *Apex Legends*, *Fortnite*, *Halo*), los jugadores con mando físico tienen una ventaja competitiva gracias a la **asistencia de apuntado nativa (Aim Assist rotacional y magnetismo)**. Sin embargo, al jugar con teclado y ratón tradicional, los juegos desactivan por completo cualquier asistencia.
 
 **AimCake soluciona este problema:**
-Permite jugar con la precisión milimétrica, giros rápidos de 180° y agilidad de tu **ratón y teclado**, mientras el sistema emula una comunicación nativa de mando para que el juego active el **Aim Assist original completo**.
+Permite jugar con la precisión milimétrica, giros rápidos de 180° y agilidad de tu **ratón y teclado**, mientras el sistema reactiva el **Aim Assist original completo** de los shooters competitivos.
 
 ---
 
 ## ✨ Características Principales
 
-* ⚡ **Respuesta Inmediata a 1000 Hz (0.1 ms):** Motor de emulación en tiempo real sin latencia perceptible ni pérdida de fotogramas por segundo (FPS).
-* 🎯 **Aim Assist Rotacional Restaurado:** Seguimiento fluido de objetivos en duelos a corta y media distancia.
+* ⚡ **Respuesta Inmediata a 1000 Hz (0.1 ms):** Motor de alta precisión en tiempo real sin latencia perceptible ni pérdida de fotogramas por segundo (FPS).
+* 🎯 **Aim Assist Rotacional Restaurado:** Seguimiento fluido de objetivos en duelos a corta y media distancia con ratón.
 * 📈 **Sintonizador de Curvas Bézier:** Curva de respuesta matemática totalmente personalizable (lineal, progresiva, suavizado EMA, anti-zona muerta, saturación y retención de stick).
-* 🎮 **Emulación Multi-Mando:** Soporte nativo para perfiles **Xbox 360 (XInput)**, **Xbox One / Series** y **DualShock 4 (PlayStation)**.
-* ⌨️ **Mapeo Visual Completo:** Interfaz interactiva para mapear teclas físicas y botones de ratón directamente sobre la silueta del mando.
+* 🎮 **Protocolos de Asistencia Compatibles:** Soporte nativo para perfiles **Xbox 360 (XInput)**, **Xbox One / Series** y **DualShock 4 (PlayStation)**.
+* ⌨️ **Mapeo Visual Completo:** Interfaz interactiva para mapear teclas físicas y botones de ratón directamente sobre las acciones de juego.
 * 🔒 **Autenticación y Perfiles en la Nube:** Sistema completo con Supabase Auth (correo/contraseña, Google OAuth, verificación de email y bonificación opcional de +3 días por teléfono móvil).
-* 📦 **Instalador de Drivers en 1 Clic (`aimcake_drivers.exe`):** Asistente automático que registra los controladores necesarios sin pasos técnicos complejos.
-* 🌐 **Landing Page Integrada:** Interfaz comercial moderna, responsiva, con comparativa en vivo, simulador de telemetría y planes de suscripción.
+* 📦 **Instalador de Drivers en 1 Clic (`aimcake_drivers.exe`):** Asistente automático que registra los componentes necesarios sin pasos técnicos complejos.
+* 🌐 **Landing Page Integrada:** Interfaz comercial moderna, responsiva, con comparativa en vivo, telemetría y planes de suscripción.
 
 ---
 

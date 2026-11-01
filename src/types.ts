@@ -17,7 +17,7 @@ export interface Binding {
 /** Stick que controla el movimiento del ratón. */
 export type MouseTarget = 'RS' | 'LS' | 'NONE';
 
-/** Mando virtual que se emula. XONE usa el mismo protocolo XInput que X360. */
+/** Protocolo de asistencia de puntería (XInput o DualShock). */
 export type ControllerType = 'X360' | 'XONE' | 'DS4';
 
 export interface EngineSettings {
@@ -31,7 +31,7 @@ export interface EngineSettings {
   keyboards: string[];
   /** Ratón elegido (exactamente 1 por perfil; se guarda como lista por compatibilidad). */
   mice: string[];
-  /** Tipo de mando a emular; `null` = sin elegir (obligatorio para activar el perfil). */
+  /** Protocolo de asistencia de puntería; `null` = sin elegir (obligatorio para activar el perfil). */
   controller: ControllerType | null;
 }
 

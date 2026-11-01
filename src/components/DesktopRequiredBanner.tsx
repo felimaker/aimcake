@@ -24,7 +24,7 @@ export default function DesktopRequiredBanner({ onGoAccount, onGoLanding, onBypa
         </h2>
 
         <p className="desktop-req-sub">
-          La emulación de mando en tiempo real, el mapeo visual de teclas, la telemetría a 1000 Hz y las curvas de respuesta
+          El Aim Assist en tiempo real a 1000 Hz, el mapeo visual de teclas, la telemetría y las curvas de respuesta
           requieren una resolución mínima de pantalla de escritorio (recomendado 1024px o superior).
         </p>
 
@@ -32,8 +32,7 @@ export default function DesktopRequiredBanner({ onGoAccount, onGoLanding, onBypa
           <div className="desktop-req-info-item">
             <strong>¿Por qué?</strong>
             <span>
-              El banco de trabajo de AimCake simula un mando físico completo con botones, sticks y ratón. En pantallas móviles o compactas
-              no hay espacio suficiente para la calibración precisa.
+              El banco de trabajo de AimCake gestiona el Aim Assist y la calibración cinemática completa de tu ratón. En pantallas móviles no hay espacio suficiente para la calibración precisa.
             </span>
           </div>
           <div className="desktop-req-info-item">

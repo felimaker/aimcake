@@ -113,10 +113,10 @@ export interface ProfileCheck {
 }
 
 export const REQUIREMENT_TEXT: Record<Requirement, { title: string; hint: string }> = {
-  controller: { title: 'Mando', hint: 'Elige qué mando se emula: Xbox 360, Xbox One o DualShock 4' },
-  keyboard: { title: 'Teclado', hint: 'Elige el teclado que controlará el mando' },
-  mouse: { title: 'Ratón', hint: 'Elige el ratón que controlará el mando' },
-  mapping: { title: 'Mapeo', hint: 'Asigna al menos una tecla a un botón del mando' },
+  controller: { title: 'Protocolo', hint: 'Elige el protocolo de asistencia: Xbox 360, Xbox One o DualShock 4' },
+  keyboard: { title: 'Teclado', hint: 'Elige el teclado para movimientos y acciones' },
+  mouse: { title: 'Ratón', hint: 'Elige el ratón para apuntar con Aim Assist' },
+  mapping: { title: 'Mapeo', hint: 'Asigna al menos una tecla a una acción de juego' },
 };
 
 export function checkProfile(p: Profile, devices?: InputDevice[]): ProfileCheck {

@@ -1,4 +1,4 @@
-/** Catálogo de mandos virtuales que se pueden emular con AimCake. */
+/** Catálogo de protocolos de asistencia compatibles con AimCake. */
 import type { ControllerType } from '../types';
 
 export interface ControllerInfo {
@@ -21,7 +21,7 @@ export const CONTROLLERS: ControllerInfo[] = [
     name: 'Xbox 360',
     short: 'X360',
     protocol: 'XInput',
-    description: 'El mando más compatible en PC. Casi todos los juegos de Windows lo reconocen sin configurar nada.',
+    description: 'El protocolo más compatible en PC. Casi todos los shooters de Windows activan Aim Assist instantáneo sin configurar nada.',
     bestFor: 'Recomendado para la mayoría de juegos (Call of Duty, Fortnite, Steam, Game Pass…).',
     accent: '#3ddc84',
   },
@@ -30,9 +30,9 @@ export const CONTROLLERS: ControllerInfo[] = [
     name: 'Xbox One / Series',
     short: 'XONE',
     protocol: 'XInput',
-    description: 'Mismos botones y mismo protocolo que el de Xbox 360. Windows y los juegos lo tratan igual.',
+    description: 'Mismos botones y protocolo que Xbox 360. Windows y los juegos activan el mismo Aim Assist rotacional.',
     bestFor: 'Si prefieres ver el nombre de Xbox One / Series en tus perfiles.',
-    note: 'Se emula como mando XInput (idéntico a Xbox 360 para los juegos).',
+    note: 'Transmite protocolo XInput (asistencia nativa Xbox para los juegos).',
     accent: '#3fd8f0',
   },
   {

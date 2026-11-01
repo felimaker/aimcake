@@ -139,7 +139,7 @@ export default function App() {
       bridge.onEngineStopped((reason) => {
         setRunning(false);
         setSnapshot(EMPTY_SNAPSHOT);
-        if (reason !== 'Emulación detenida') toast('error', reason);
+        if (reason !== 'Emulación detenida' && reason !== 'Aim Assist detenido') toast('error', reason);
       }),
       bridge.onDevicesChanged(loadDevices),
     ];
@@ -277,11 +277,11 @@ export default function App() {
 
   const TITLES: Record<View, [string, string]> = {
     landing: ['AimCake · Web Oficial', 'Landing page comercial, características, telemetría y descargas'],
-    dashboard: ['Panel de Control · AimCake', 'Completa la lista de configuración y empieza a jugar con asistencia 1000 Hz'],
-    profiles: ['Perfiles', 'Cada perfil une mando, teclado, ratón y mapeo: los cuatro son obligatorios para activarlo'],
-    mapping: ['Mapeo de controles', 'Asigna teclas y botones del ratón directamente sobre el mando'],
-    curve: ['Curva de respuesta', 'Ajusta cómo se traduce el ratón al stick'],
-    devices: ['Dispositivos', 'Elige el mando a emular, un teclado y un ratón'],
+    dashboard: ['Panel de Control · AimCake', 'Activa tu asistencia Aim Assist a 1000 Hz y domina cada partida'],
+    profiles: ['Perfiles', 'Cada perfil une protocolo, teclado, ratón y mapeo: los cuatro son necesarios para activarlo'],
+    mapping: ['Mapeo de controles', 'Asigna teclas y botones del ratón directamente para tu juego'],
+    curve: ['Curva de respuesta', 'Ajusta la cinemática y sensibilidad de tu ratón para el Aim Assist'],
+    devices: ['Dispositivos', 'Elige tu protocolo de asistencia, teclado y ratón exclusivos'],
     license: ['Licencia y suscripción', 'Prueba gratuita de 3 días por equipo · Suscripción con Stripe'],
     account: ['Cuenta AimCake', 'Gestiona tu acceso: correo, contraseña y Google vinculados a una misma cuenta'],
     superadmin: ['Consola SuperAdmin', 'Gestión global de usuarios registrados, monitoreo de licencias y días de suscripción'],
@@ -356,7 +356,7 @@ export default function App() {
         </nav>
         <div className="sidebar-footer">
           <span className={`chip ${running ? (snapshot.paused ? 'warn' : 'ok') : ''}`}>
-            <span className="dot" />{running ? (snapshot.paused ? 'En pausa' : 'Emulando') : 'Detenido'}
+            <span className="dot" />{running ? (snapshot.paused ? 'En pausa' : 'Aim Assist Activo') : 'Inactivo'}
           </span>
           <span className={`chip ${licensed ? (license.payload?.status === 'active' ? 'ok' : 'warn') : 'bad'}`}>
             <span className="dot" />
@@ -457,21 +457,21 @@ export default function App() {
               <div className="grid grid-hero">
                 <section className="card power-card">
                   <div className="card-title" style={{ alignSelf: 'stretch' }}>
-                    <span>Emulador virtual</span>
+                    <span>Sistema de Aim Assist</span>
                     <span className={`chip ${running ? 'ok' : ''}`}><span className="dot" />{running ? 'ONLINE' : 'OFFLINE'}</span>
                   </div>
-                  <button id="power-toggle" className={`power ${running ? 'on' : ''}`} onClick={toggle} disabled={busy} aria-label={running ? 'Detener emulador' : 'Iniciar emulador virtual'}>
+                  <button id="power-toggle" className={`power ${running ? 'on' : ''}`} onClick={toggle} disabled={busy} aria-label={running ? 'Desactivar Aim Assist' : 'Activar Aim Assist'}>
                     <span className="power-ring" />
                     {busy ? <span className="spinner" style={{ width: 40, height: 40, borderWidth: 3, color: 'var(--accent)' }} /> : <IconPower className="power-icon" />}
-                    <span className="power-label">{running ? 'ACTIVO' : 'INICIAR'}</span>
+                    <span className="power-label">{running ? 'ACTIVO' : 'ACTIVAR'}</span>
                   </button>
                   <div style={{ textAlign: 'center' }}>
-                    <h2 style={{ fontSize: 19 }}>{running ? `${controllerName(settings.controller)} conectado` : activeCheck.complete ? 'Listo para emular' : 'Perfil incompleto'}</h2>
+                    <h2 style={{ fontSize: 19 }}>{running ? `Aim Assist Activo (${controllerName(settings.controller)})` : activeCheck.complete ? 'Listo para jugar' : 'Perfil incompleto'}</h2>
                     <p className="faint" style={{ margin: '6px 0 0' }}>
                       {running
                         ? <>Pulsa <span className="keycap" style={{ padding: '2px 7px' }}>{keyName(settings.pauseHotkey)}</span> para pausar sin desconectar</>
                         : !activeCheck.complete ? 'Sigue la lista de configuración de arriba'
-                          : licensed ? 'Pulsa el botón para conectar el mando virtual' : 'Activa tu licencia o prueba gratuita para empezar'}
+                          : licensed ? 'Pulsa el botón para activar tu Aim Assist' : 'Activa tu licencia o prueba gratuita para empezar'}
                     </p>
                   </div>
                   {running && (
@@ -483,7 +483,7 @@ export default function App() {
                     <span className="pswitch-dot" />
                     <span className="power-profile-text">
                       <strong>{activeProfile.name}</strong>
-                      <small><IconGamepad /> {settings.controller ? controllerName(settings.controller) : 'Mando sin elegir'}</small>
+                      <small><IconGamepad /> {settings.controller ? controllerName(settings.controller) : 'Protocolo sin elegir'}</small>
                       <small><IconKeyboard /> {devName(settings.keyboards)}</small>
                       <small><IconMouse /> {devName(settings.mice)}</small>
                     </span>
@@ -493,7 +493,7 @@ export default function App() {
 
                 <section className="card lc-card">
                   <div className="card-title">
-                    <span>Mando virtual en vivo</span>
+                    <span>Telemetría de botones en vivo</span>
                     <span className="row" style={{ gap: 8 }}>
                       {running && <span className="chip mono">{Math.round(snapshot.hz)} Hz</span>}
                       <span className={`chip ${running ? (snapshot.paused ? 'warn' : 'ok') : ''}`}><span className="dot" />{running ? (snapshot.paused ? 'Pausado' : (settings.controller === 'DS4' ? 'DS4 · Jugador 1' : 'XInput · Jugador 1')) : 'Sin señal'}</span>
