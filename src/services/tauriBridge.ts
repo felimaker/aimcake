@@ -29,6 +29,16 @@ type Listener<T> = (v: T) => void;
 /* ------------------------------------------------------------------ */
 const MOCK_DEVICES: InputDevice[] = [
   {
+    id: 'mouse:046D:B023',
+    kind: 'mouse',
+    name: 'Ratón Logitech Bluetooth (G Pro / MX / Pebble)',
+    manufacturer: 'Logitech',
+    vid: '046D',
+    pid: 'B023',
+    interfaces: 2,
+    connection: 'Bluetooth',
+  },
+  {
     id: 'mouse:acpi\\touchpad',
     kind: 'mouse',
     name: 'Touchpad / Pad Mouse Integrado',
@@ -39,19 +49,9 @@ const MOCK_DEVICES: InputDevice[] = [
     connection: 'I2C / integrado',
   },
   {
-    id: 'mouse:046D:C547',
-    kind: 'mouse',
-    name: 'Logitech G PRO X Superlight',
-    manufacturer: 'Logitech',
-    vid: '046D',
-    pid: 'C547',
-    interfaces: 2,
-    connection: 'USB / Inalámbrico',
-  },
-  {
     id: 'mouse:1532:0084',
     kind: 'mouse',
-    name: 'Razer DeathAdder V2',
+    name: 'Razer DeathAdder V2 (Mouse USB)',
     manufacturer: 'Razer',
     vid: '1532',
     pid: '0084',
@@ -100,34 +100,30 @@ class MockEngine {
   private stick = new StickProcessor(DEFAULT_SETTINGS.config);
 
   /**
-   * Discrimina de forma estricta si el evento del navegador proviene del Touchpad integrado
-   * o del ratón externo Logitech para evitar mezclas indeseadas.
+   * Discrimina de forma estricta si el evento proviene del Touchpad integrado
+   * o del ratón externo Logitech Bluetooth.
    */
   resolveMouseSource(e: MouseEvent | WheelEvent | PointerEvent): string {
-    // 1. Rueda de Touchpad: deltas en modo píxel finos, gestos horizontales o pinch-to-zoom
-    if ('deltaY' in e) {
-      const we = e as WheelEvent;
-      const isTouchpad = (we.deltaMode === 0 && Math.abs(we.deltaY) < 60 && Math.abs(we.deltaY) > 0) || Math.abs(we.deltaX) > 0 || we.ctrlKey;
-      if (isTouchpad) return 'mouse:acpi\\touchpad';
-      if (Math.abs(we.deltaY) >= 80) return 'mouse:046D:C547';
-    }
-
-    // 2. Botón central o botones laterales (típicos de ratón Logitech)
-    if ('button' in e && (e.button === 1 || e.button === 3 || e.button === 4)) {
-      return 'mouse:046D:C547';
-    }
-
-    // 3. PointerEvent touch
-    if ('pointerType' in e && (e.pointerType === 'touch' || e.pointerType === 'pen')) {
-      return 'mouse:acpi\\touchpad';
-    }
-
-    // 4. Si el usuario ya asignó un ratón específico en el perfil, canalizar estrictamente a ese
+    // 1. Si el usuario ya asignó un ratón específico en el perfil, canalizar estrictamente a ese
     if (this.settings.mice.length > 0) {
       return this.settings.mice[0];
     }
 
-    return 'mouse:acpi\\touchpad';
+    // 2. Rueda de Touchpad: deltas en modo píxel finos, gestos horizontales o pinch-to-zoom
+    if ('deltaY' in e) {
+      const we = e as WheelEvent;
+      const isTouchpad = (we.deltaMode === 0 && Math.abs(we.deltaY) < 60 && Math.abs(we.deltaY) > 0) || Math.abs(we.deltaX) > 0 || we.ctrlKey;
+      if (isTouchpad) return 'mouse:acpi\\touchpad';
+      if (Math.abs(we.deltaY) >= 80) return 'mouse:046D:B023';
+    }
+
+    // 3. PointerEvent touch o pen -> Touchpad nativo
+    if ('pointerType' in e && (e.pointerType === 'touch' || e.pointerType === 'pen')) {
+      return 'mouse:acpi\\touchpad';
+    }
+
+    // 4. Por defecto, todo movimiento y clic físico proviene del Ratón Externo Logitech Bluetooth
+    return 'mouse:046D:B023';
   }
 
   resolveKeyboardSource(e: KeyboardEvent): string {

@@ -60,13 +60,32 @@ fn extract_hex(path_upper: &str, key: &str) -> Option<String> {
 
 pub fn parse_vid_pid(path: &str) -> (Option<String>, Option<String>) {
     let up = path.to_uppercase();
-    // USB: VID_xxxx&PID_xxxx · Bluetooth: VID&02xxxx_PID&xxxx
+    // USB: VID_xxxx&PID_xxxx · Bluetooth: VID&0002046D / VID&02046D
     let vid = extract_hex(&up, "VID_").or_else(|| {
+        if up.contains("046D") {
+            return Some("046D".to_string());
+        }
         let i = up.find("VID&")? + 4;
-        let hex: String = up[i..].chars().skip(2).take(4).collect();
-        (hex.len() == 4).then_some(hex)
+        let rest: String = up[i..].chars().take(8).collect();
+        if rest.len() == 8 && rest.starts_with("0002") && rest.chars().all(|c| c.is_ascii_hexdigit()) {
+            Some(rest[4..8].to_string())
+        } else if rest.len() >= 6 && rest.starts_with("02") && rest.chars().take(6).all(|c| c.is_ascii_hexdigit()) {
+            Some(rest[2..6].to_string())
+        } else {
+            let hex: String = rest.chars().take(4).collect();
+            (hex.len() == 4 && hex.chars().all(|c| c.is_ascii_hexdigit())).then_some(hex)
+        }
     });
-    let pid = extract_hex(&up, "PID_").or_else(|| extract_hex(&up, "PID&"));
+    let pid = extract_hex(&up, "PID_").or_else(|| {
+        let i = up.find("PID&")? + 4;
+        let rest: String = up[i..].chars().take(8).collect();
+        if rest.len() == 8 && rest.starts_with("0000") && rest.chars().all(|c| c.is_ascii_hexdigit()) {
+            Some(rest[4..8].to_string())
+        } else {
+            let hex: String = rest.chars().take(4).collect();
+            (hex.len() == 4 && hex.chars().all(|c| c.is_ascii_hexdigit())).then_some(hex)
+        }
+    });
     (vid, pid)
 }
 
@@ -162,12 +181,20 @@ fn is_touchpad_path(path_upper: &str) -> bool {
         || path_upper.contains("FTS")
 }
 
+fn is_bluetooth_path(path_upper: &str) -> bool {
+    path_upper.contains("00001124-0000-1000-8000-00805F9B34FB")
+        || path_upper.contains("BTH")
+        || path_upper.contains("BLUETOOTH")
+        || path_upper.contains("BTHENUM")
+        || path_upper.contains("BTHLE")
+}
+
 fn connection_of(path: &str) -> &'static str {
     let up = path.to_uppercase();
-    if is_touchpad_path(&up) {
-        "I2C / integrado"
-    } else if up.contains("00001124-0000-1000-8000-00805F9B34FB") || up.contains("BTH") {
+    if is_bluetooth_path(&up) {
         "Bluetooth"
+    } else if is_touchpad_path(&up) {
+        "I2C / integrado"
     } else if up.contains("ACPI") || up.contains("PNP0") {
         "PS/2 / integrado"
     } else if up.contains("VID_") {
@@ -218,11 +245,15 @@ pub fn enumerate() -> Vec<InputDevice> {
                 .find_map(|p| read_hid_string(p, false))
                 .or_else(|| vid.as_deref().and_then(vendor_name).map(String::from));
             let connection = connection_of(&paths[0]).to_string();
-            let is_touchpad = kind == KIND_MOUSE && (is_touchpad_path(&paths[0].to_uppercase()) || connection == "I2C / integrado" || connection == "PS/2 / integrado");
+            let is_bluetooth = connection == "Bluetooth";
+            let is_touchpad = kind == KIND_MOUSE && !is_bluetooth && (is_touchpad_path(&paths[0].to_uppercase()) || connection == "I2C / integrado" || connection == "PS/2 / integrado");
             let generic = if is_touchpad { "Touchpad" } else if kind == KIND_MOUSE { "Ratón" } else { "Teclado" };
             let name = product.unwrap_or_else(|| {
                 if is_touchpad {
                     return "Touchpad / Pad Mouse Integrado (Portátil)".to_string();
+                }
+                if is_bluetooth && (manufacturer.as_deref() == Some("Logitech") || vid.as_deref() == Some("046D")) {
+                    return "Ratón Logitech Bluetooth".to_string();
                 }
                 match (&manufacturer, connection.as_str()) {
                     (_, "Virtual") => format!("{generic} virtual"),

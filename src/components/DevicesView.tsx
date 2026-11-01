@@ -251,40 +251,40 @@ export default function DevicesView({ settings, onChange, toast }: Props) {
             </small>
           </div>
 
-          {/* Tarjeta de Prueba Mouse Logitech / Externo */}
-          <div className={`dev-iso-tile ${settings.mice.includes('mouse:046D:C547') ? 'active-source' : (settings.mice.length > 0 && !settings.mice.includes('mouse:046D:C547') ? 'blocked-source' : '')}`}>
+          {/* Tarjeta de Prueba Mouse Logitech / Externo Bluetooth */}
+          <div className={`dev-iso-tile ${settings.mice.includes('mouse:046D:B023') ? 'active-source' : (settings.mice.length > 0 && !settings.mice.includes('mouse:046D:B023') ? 'blocked-source' : '')}`}>
             <div className="row-between">
-              <strong>Ratón Externo Logitech</strong>
-              {settings.mice.includes('mouse:046D:C547') ? (
+              <strong>Ratón Logitech Bluetooth</strong>
+              {settings.mice.includes('mouse:046D:B023') ? (
                 <span className="chip ok xs"><IconCheck /> Ratón Seleccionado</span>
               ) : (
                 <span className="chip xs" style={{ color: 'var(--danger)' }}>🚫 Aislado / Ignorado</span>
               )}
             </div>
             <p className="faint" style={{ fontSize: 12, margin: '6px 0' }}>
-              Mouse gaming USB / inalámbrico de alta precisión.
+              Mouse inalámbrico Logitech conectado por Bluetooth.
             </p>
             <div className="row" style={{ gap: 8, marginTop: 8 }}>
               <button
                 type="button"
                 className="btn btn-sm"
-                onClick={() => bridge.simulateDeviceActivity('mouse:046D:C547', 'mouse')}
+                onClick={() => bridge.simulateDeviceActivity('mouse:046D:B023', 'mouse')}
               >
                 Probar Entrada Logitech
               </button>
-              {!settings.mice.includes('mouse:046D:C547') && (
+              {!settings.mice.includes('mouse:046D:B023') && (
                 <button
                   type="button"
                   className="btn btn-sm btn-primary"
-                  onClick={() => onChange({ ...settings, mice: ['mouse:046D:C547'] })}
+                  onClick={() => onChange({ ...settings, mice: ['mouse:046D:B023'] })}
                 >
                   Usar Este Logitech
                 </button>
               )}
             </div>
-            <small style={{ marginTop: 6, display: 'block', fontSize: 11.5, color: settings.mice.includes('mouse:046D:C547') ? 'var(--accent)' : 'var(--muted)' }}>
-              {settings.mice.includes('mouse:046D:C547')
-                ? '✅ RECIBIDO: El Aim Assist responderá exclusivamente a tu mouse Logitech.'
+            <small style={{ marginTop: 6, display: 'block', fontSize: 11.5, color: settings.mice.includes('mouse:046D:B023') ? 'var(--accent)' : 'var(--muted)' }}>
+              {settings.mice.includes('mouse:046D:B023')
+                ? '✅ RECIBIDO: El Aim Assist responderá exclusivamente a tu mouse Logitech Bluetooth.'
                 : '🚫 BLOQUEADO: Si no estás usando este mouse, sus entradas no moverán tu puntería en el juego.'}
             </small>
           </div>
