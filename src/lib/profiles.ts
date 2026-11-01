@@ -28,8 +28,8 @@ function starterProfiles(): Profile[] {
   let main: EngineSettings = {
     ...DEFAULT_SETTINGS,
     controller: 'X360',
-    keyboards: ['keyboard:acpi\\pnp0303'],
-    mice: ['mouse:046D:B023'],
+    keyboards: [],
+    mice: [],
   };
   try {
     const legacy = localStorage.getItem(LEGACY_SETTINGS_KEY);
@@ -38,8 +38,6 @@ function starterProfiles(): Profile[] {
       main = normalizeSettings({
         ...parsed,
         controller: parsed.controller || 'X360',
-        keyboards: parsed.keyboards?.length ? parsed.keyboards : ['keyboard:acpi\\pnp0303'],
-        mice: parsed.mice?.length ? parsed.mice : ['mouse:046D:B023'],
       });
     }
   } catch { /* ajustes antiguos corruptos: usar los por defecto */ }
@@ -56,10 +54,8 @@ function defaultStore(): ProfileStore {
 
 function normalizeProfile(raw: Partial<Profile>): Profile {
   const normSettings = normalizeSettings(raw.settings);
-  // Asegura que tenga el protocolo y dispositivos por defecto si venía vacío
+  // Protocolo por defecto; los dispositivos los elige siempre el usuario (nunca se inventan).
   if (!normSettings.controller) normSettings.controller = 'X360';
-  if (normSettings.keyboards.length === 0) normSettings.keyboards = ['keyboard:acpi\\pnp0303'];
-  if (normSettings.mice.length === 0) normSettings.mice = ['mouse:046D:B023'];
 
   return {
     id: typeof raw.id === 'string' && raw.id ? raw.id : newId(),

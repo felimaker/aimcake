@@ -21,7 +21,7 @@ import { DEFAULT_SETTINGS } from './lib/curve';
 import { keyName } from './lib/keys';
 import { checkProfile, loadStore, missingText, REQUIREMENT_TEXT, REQUIREMENTS, saveStore } from './lib/profiles';
 import { bridge, isTauri } from './services/tauriBridge';
-import type { ControllerType, EngineSettings, EngineStatus, GamepadSnapshot, InputDevice, Profile, ProfileStore } from './types';
+import type { EngineSettings, EngineStatus, GamepadSnapshot, InputDevice, Profile, ProfileStore } from './types';
 import { EMPTY_SNAPSHOT } from './types';
 
 type View = 'landing' | 'dashboard' | 'profiles' | 'mapping' | 'curve' | 'devices' | 'license' | 'account' | 'superadmin';
@@ -98,6 +98,7 @@ export default function App() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [devices, setDevices] = useState<InputDevice[]>([]);
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [saveState, setSaveState] = useState<'saved' | 'saving'>('saved');
   const license = useLicense(hwid);
   const auth = useAuth();
   const now = Date.now() / 1000;
@@ -149,14 +150,26 @@ export default function App() {
   // Persistir perfiles (con debounce) cada vez que cambian.
   const saveTimer = useRef<number>();
   const loaded = useRef(false);
+  const storeRef = useRef<ProfileStore | null>(null);
+  storeRef.current = store;
+  const persist = useCallback(async () => {
+    clearTimeout(saveTimer.current);
+    const st = storeRef.current;
+    if (!st) return;
+    try {
+      await saveStore(st);
+      if (storeRef.current === st) setSaveState('saved');
+    } catch (e) {
+      toast('error', `No se pudieron guardar los perfiles: ${e}`);
+    }
+  }, [toast]);
   useEffect(() => {
     if (!store) return;
     if (!loaded.current) { loaded.current = true; saveStore(store).catch(() => {}); return; }
+    setSaveState('saving');
     clearTimeout(saveTimer.current);
-    saveTimer.current = window.setTimeout(() => {
-      saveStore(store).catch((e) => toast('error', `No se pudieron guardar los perfiles: ${e}`));
-    }, 300);
-  }, [store, toast]);
+    saveTimer.current = window.setTimeout(persist, 300);
+  }, [store, persist]);
 
   // Sincronizar los ajustes del perfil activo con el motor.
   const syncTimer = useRef<number>();
@@ -176,14 +189,6 @@ export default function App() {
       return { ...st, profiles: st.profiles.map((p) => (p.id === target ? { ...p, settings: next, updatedAt: Date.now() } : p)) };
     });
   }, [editingId]);
-
-  /** Modifica los ajustes del perfil ACTIVO (lo usa la checklist del Panel). */
-  const setActiveController = useCallback((c: ControllerType) => {
-    setStore((st) => st && {
-      ...st,
-      profiles: st.profiles.map((p) => (p.id === st.activeId ? { ...p, settings: { ...p.settings, controller: c }, updatedAt: Date.now() } : p)),
-    });
-  }, []);
 
   const refreshStatus = useCallback(async () => {
     const s = await bridge.getStatus();
@@ -297,6 +302,10 @@ export default function App() {
 
   const editsOther = editProfile.id !== activeProfile.id;
   const isEditView = view === 'mapping' || view === 'curve' || view === 'devices';
+  const NEXT_MODULE: Partial<Record<'devices' | 'mapping' | 'curve', { view: View; label: string }>> = {
+    devices: { view: 'mapping', label: 'Mapeo' },
+    mapping: { view: 'curve', label: 'Curva' },
+  };
   const editCheck = checkProfile(editProfile, devices);
 
   // 1. Ruta pública: Landing page comercial (accesible por todos)
@@ -430,6 +439,25 @@ export default function App() {
           </div>
         )}
 
+        {isEditView && (
+          <div className="module-bar">
+            <span className={`module-save ${saveState}`}>
+              {saveState === 'saved' ? <IconCheck /> : <span className="spinner" />}
+              {saveState === 'saved' ? `Guardado en el perfil «${editProfile.name}»` : 'Guardando…'}
+            </span>
+            <div className="row" style={{ gap: 8 }}>
+              <button id="module-back" className="btn btn-sm btn-ghost" onClick={async () => { await persist(); setView('dashboard'); }}>
+                <IconDashboard /> Guardar y volver al Panel
+              </button>
+              {NEXT_MODULE[view as 'devices' | 'mapping' | 'curve'] && (
+                <button id="module-next" className="btn btn-sm btn-primary" onClick={async () => { await persist(); setView(NEXT_MODULE[view as 'devices' | 'mapping' | 'curve']!.view); }}>
+                  Siguiente: {NEXT_MODULE[view as 'devices' | 'mapping' | 'curve']!.label} <IconChevron style={{ transform: 'rotate(-90deg)' }} />
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
         <div className="view" key={view}>
           {!isDesktop && !bypassDesktopReq && (view === 'dashboard' || view === 'mapping' || view === 'curve' || view === 'devices' || view === 'profiles') ? (
             <DesktopRequiredBanner
@@ -446,8 +474,6 @@ export default function App() {
                 profile={activeProfile}
                 devices={devices}
                 onRefreshStatus={refreshStatus}
-                onSetController={setActiveController}
-                onUpdateProfile={upsert}
                 onGo={(v) => { setEditingId(activeProfile.id); setView(v); }}
                 toast={toast}
               />
