@@ -266,9 +266,9 @@ export default function App() {
   const NAV: { id: View; label: string; icon: JSX.Element; badge?: string }[] = [
     { id: 'dashboard', label: 'Panel', icon: <IconDashboard /> },
     { id: 'profiles', label: 'Perfiles', icon: <IconLayers />, badge: activeCheck && !activeCheck.complete ? '!' : undefined },
+    { id: 'devices', label: 'Dispositivos', icon: <IconDevices /> },
     { id: 'mapping', label: 'Mapeo', icon: <IconGamepad /> },
     { id: 'curve', label: 'Curva', icon: <IconCurve /> },
-    { id: 'devices', label: 'Dispositivos', icon: <IconDevices /> },
     { id: 'license', label: 'Licencia', icon: <IconShield /> },
     { id: 'account', label: 'Cuenta', icon: <IconUser /> },
     ...(auth.user?.isSuper ? [{ id: 'superadmin' as View, label: 'SuperAdmin', icon: <IconCrown style={{ color: '#f59e0b' }} />, badge: 'SUPER' }] : []),
