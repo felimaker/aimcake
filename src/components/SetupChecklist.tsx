@@ -4,7 +4,7 @@ import { checkProfile } from '../lib/profiles';
 import { isMouseInput } from '../lib/keys';
 import { bridge, isTauri } from '../services/tauriBridge';
 import {
-  IconArrowRight, IconCheck, IconChip, IconCpu, IconCurve, IconDownload,
+  IconArrowRight, IconCheck, IconCpu, IconCurve, IconDownload,
   IconGamepad, IconKeyboard, IconLayers, IconMouse, IconRefresh, IconSpark
 } from './Icons';
 
@@ -21,60 +21,6 @@ interface Props {
   onGo: (view: GoView) => void;
   toast: (kind: 'error' | 'success' | 'info', text: string) => void;
 }
-
-interface InstallablePackage {
-  id: SoftwarePackageId;
-  name: string;
-  badge: string;
-  badgeType: 'ok' | 'info';
-  fileName: string;
-  fileSize: string;
-  downloadUrl: string;
-  benefit: string;
-}
-
-const INSTALLABLE_PACKAGES: InstallablePackage[] = [
-  {
-    id: 'vigembus',
-    name: 'Driver de Asistencia AimCake',
-    badge: 'Aim Assist',
-    badgeType: 'ok',
-    fileName: 'AimCake_bigembus.exe',
-    fileSize: '~6.3 MB',
-    downloadUrl: '/downloads/AimCake_bigembus.exe',
-    benefit: 'Activa la asistencia de apuntado nativa (Aim Assist) jugando con tu ratón y teclado.',
-  },
-  {
-    id: 'aimcake_drivers',
-    name: 'Aislamiento de Periféricos AimCake',
-    badge: 'Sin Doble Cursor',
-    badgeType: 'ok',
-    fileName: 'AimCake_drivers.exe',
-    fileSize: '~6.3 MB',
-    downloadUrl: '/downloads/aimcake_drivers.exe',
-    benefit: 'Elimina el doble cursor en pantalla y garantiza respuesta inmediata de 1 ms.',
-  },
-  {
-    id: 'vcredist',
-    name: 'Librerías de Rendimiento (Visual C++)',
-    badge: 'Compatibilidad',
-    badgeType: 'info',
-    fileName: 'AimCake_vcredist.exe',
-    fileSize: '~25.6 MB',
-    downloadUrl: '/downloads/AimCake_vcredist.exe',
-    benefit: 'Garantiza que Aim Assist funcione fluido, estable y sin errores en Windows.',
-  },
-  {
-    id: 'aimcake_bridge',
-    name: 'Aplicación de Escritorio AimCake',
-    badge: 'App Windows',
-    badgeType: 'info',
-    fileName: 'AimCake_Setup.exe',
-    fileSize: '~6.3 MB',
-    downloadUrl: '/downloads/AimCake_Setup.exe',
-    benefit: 'Te permite abrir AimCake con un clic y jugar con Aim Assist activo en segundo plano.',
-  },
-];
 
 const POPULAR_GAMES = [
   'Call of Duty: Warzone',
@@ -105,19 +51,14 @@ export default function SetupChecklist({
   const mappedCount = s.bindings.length;
   const mouseBindingsCount = s.bindings.filter((b) => isMouseInput(b.input)).length;
 
-  // Estado de los paquetes de software
+  // Estado del software e instalador
   const pkgs = status?.verification?.packages;
   const driverReady = !!status?.driverOk;
-  
-  // Conteo de paquetes verificados
-  const verifiedCount = INSTALLABLE_PACKAGES.filter(
-    (p) => pkgs?.[p.id]?.verified || (p.id === 'vigembus' && driverReady)
-  ).length;
-  const allSoftwareReady = driverReady || verifiedCount >= 3;
+  const isInstalled = driverReady || Boolean(pkgs?.vigembus?.verified);
 
   // Estados de completitud de cada uno de los 5 pasos
   const stepCompleted: Record<StepNum, boolean> = {
-    1: allSoftwareReady,
+    1: isInstalled,
     2: Boolean(profile.name.trim().length > 0),
     3: Boolean(s.controller && s.keyboards.length > 0 && s.mice.length > 0),
     4: Boolean(mappedCount >= 4),
@@ -182,28 +123,6 @@ export default function SetupChecklist({
     }
   };
 
-  const handleDownloadPackage = (pkg: InstallablePackage) => {
-    bridge.recordPackageDownload(pkg.id);
-    onRefreshStatus();
-    toast('info', `Iniciando descarga de ${pkg.fileName}...`);
-  };
-
-  const handleDownloadAll = () => {
-    INSTALLABLE_PACKAGES.forEach((pkg, index) => {
-      setTimeout(() => {
-        bridge.recordPackageDownload(pkg.id);
-        const link = document.createElement('a');
-        link.href = pkg.downloadUrl;
-        link.download = pkg.fileName;
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-      }, index * 320);
-    });
-    onRefreshStatus();
-    toast('success', 'Descargando los 4 instaladores de Windows a tu carpeta de descargas.');
-  };
-
   const handleToggleVerified = (pkgId: SoftwarePackageId) => {
     bridge.togglePackageVerified(pkgId);
     onRefreshStatus();
@@ -216,7 +135,7 @@ export default function SetupChecklist({
       const res = await bridge.installDriver();
       await onRefreshStatus();
       if (res.driverOk) {
-        toast('success', 'ViGEmBus instalado y verificado con éxito en Windows.');
+        toast('success', 'Driver instalado y verificado con éxito en Windows.');
       } else if (res.rebootRequired) {
         toast('info', 'Instalación completa. Windows requiere reiniciar el equipo.');
       } else if (res.cancelled) {
@@ -232,7 +151,7 @@ export default function SetupChecklist({
   };
 
   const STEPS_META = [
-    { num: 1 as StepNum, title: 'Instalables (.exe)', label: 'Software e Instalables', icon: <IconChip /> },
+    { num: 1 as StepNum, title: 'Instalador (.exe)', label: 'aimcake_setup.exe', icon: <IconDownload /> },
     { num: 2 as StepNum, title: 'Perfil', label: 'Nombre y Juego', icon: <IconLayers /> },
     { num: 3 as StepNum, title: 'Dispositivos', label: 'Protocolo, Mouse y Teclado', icon: <IconGamepad /> },
     { num: 4 as StepNum, title: 'Mapeo', label: 'Asignación de Teclas', icon: <IconKeyboard /> },
@@ -290,123 +209,105 @@ export default function SetupChecklist({
       {/* Wizard Step Body */}
       <div className="wizard-content">
         {/* ======================================================== */}
-        {/* PASO 1: INSTALACIÓN DE TODOS LOS INSTALABLES (.EXE)      */}
+        {/* PASO 1: INSTALADOR AIMCAKE (.EXE)                        */}
         {/* ======================================================== */}
         {activeStep === 1 && (
           <div className="wizard-pane animate-fade">
             <div className="wizard-pane-header">
-              <div className="wizard-pane-icon"><IconChip /></div>
+              <div className="wizard-pane-icon"><IconDownload /></div>
               <div>
-                <h4>Paso 1: Instalación de Todos los Software e Instalables (.exe)</h4>
+                <h4>Paso 1: Instalador Oficial AimCake (aimcake_setup.exe)</h4>
                 <p className="faint">
-                  Descarga e instala los componentes necesarios en Windows para habilitar tu Aim Assist a 1000 Hz con aislamiento de periféricos.
+                  Descarga y ejecuta el instalador único para activar tu Aim Assist a 1000 Hz con aislamiento de hardware en Windows.
                 </p>
               </div>
               <div className="row" style={{ marginLeft: 'auto', gap: 8 }}>
-                <span className={`chip ${allSoftwareReady ? 'ok' : 'warn'}`}>
+                <span className={`chip ${isInstalled ? 'ok' : 'warn'}`}>
                   <span className="dot" />
-                  {allSoftwareReady ? `${verifiedCount} de 4 Verificados` : `${verifiedCount} de 4 Instalados`}
+                  {isInstalled ? 'Instalado y Verificado' : 'Pendiente de Instalación'}
                 </span>
               </div>
             </div>
 
-            {/* Barra de Acciones Globales del Paso 1 */}
-            <div className="wizard-pkg-bulk-bar">
-              <div className="row" style={{ gap: 10, flexWrap: 'wrap' }}>
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={handleDownloadAll}
-                >
-                  <IconDownload /> Descargar los 4 Instalables (.exe)
-                </button>
+            {/* Tarjeta Única del Instalable aimcake_setup.exe */}
+            <div className="wizard-pane-card" style={{ padding: 22 }}>
+              <div className="row-between" style={{ gap: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+                <div className="row" style={{ gap: 14, alignItems: 'center' }}>
+                  <div style={{
+                    width: 50,
+                    height: 50,
+                    borderRadius: 14,
+                    display: 'grid',
+                    placeItems: 'center',
+                    background: 'var(--accent-soft)',
+                    color: 'var(--accent)',
+                    border: '1px solid hsl(142 88% 52% / 0.3)',
+                    flexShrink: 0,
+                  }}>
+                    <IconDownload style={{ width: 24, height: 24 }} />
+                  </div>
+                  <div>
+                    <div className="row" style={{ gap: 8, alignItems: 'center' }}>
+                      <strong style={{ fontSize: 16, color: 'var(--text)' }}>aimcake_setup.exe</strong>
+                      <span className="chip ok xs">Instalador Completo</span>
+                      <span className="faint" style={{ fontSize: 12 }}>~6.3 MB · Windows 10/11 (64-bit)</span>
+                    </div>
+                    <p className="faint" style={{ margin: '4px 0 0', fontSize: 13 }}>
+                      Instalador único que incluye la aplicación AimCake, el driver de compatibilidad y los componentes de aislamiento de periféricos.
+                    </p>
+                  </div>
+                </div>
 
-                <button
-                  type="button"
-                  className="btn"
-                  onClick={handleRecheckDriver}
-                  disabled={checkingDrivers}
-                >
-                  {checkingDrivers ? <span className="spinner" /> : <IconRefresh />} Validar Instalación de Todo
-                </button>
+                <div className="row" style={{ gap: 10, flexWrap: 'wrap' }}>
+                  <a
+                    href="/downloads/aimcake_setup.exe"
+                    download="aimcake_setup.exe"
+                    className="btn btn-primary"
+                    onClick={() => {
+                      bridge.recordPackageDownload('vigembus');
+                      onRefreshStatus();
+                      toast('success', 'Descargando aimcake_setup.exe...');
+                    }}
+                  >
+                    <IconDownload /> Descargar aimcake_setup.exe
+                  </a>
 
-                {isTauri && (
                   <button
                     type="button"
-                    className="btn btn-ghost"
-                    onClick={handleInstallAuto}
-                    disabled={installingAuto}
+                    className="btn"
+                    onClick={handleRecheckDriver}
+                    disabled={checkingDrivers}
                   >
-                    {installingAuto ? <span className="spinner" /> : <IconCpu />} Instalar Automático (Tauri)
+                    {checkingDrivers ? <span className="spinner" /> : <IconRefresh />} Validar Instalación
                   </button>
-                )}
+
+                  {isTauri && (
+                    <button
+                      type="button"
+                      className="btn btn-ghost"
+                      onClick={handleInstallAuto}
+                      disabled={installingAuto}
+                    >
+                      {installingAuto ? <span className="spinner" /> : <IconCpu />} Instalar Automático (Tauri)
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => handleToggleVerified('vigembus')}
+                    title="Marcar manualmente si ya lo instalaste"
+                  >
+                    {isInstalled ? '✓ Marcar como verificado' : 'Marcar como instalado'}
+                  </button>
+                </div>
               </div>
-              <span className="faint" style={{ fontSize: 12 }}>
-                💡 Puedes descargar cada paquete individualmente o pulsar «Descargar los 4 Instalables».
-              </span>
-            </div>
-
-            {/* Grid con los 4 Software / Instalables Requeridos */}
-            <div className="wizard-pkg-grid">
-              {INSTALLABLE_PACKAGES.map((pkg, idx) => {
-                const isDownloaded = Boolean(pkgs?.[pkg.id]?.downloaded);
-                const isVerified = Boolean(pkgs?.[pkg.id]?.verified || (pkg.id === 'vigembus' && driverReady));
-
-                return (
-                  <div key={pkg.id} className={`wizard-pkg-card ${isVerified ? 'verified' : isDownloaded ? 'downloaded' : ''}`}>
-                    <div className="wizard-pkg-card-top">
-                      <div className="row" style={{ gap: 8 }}>
-                        <span className="wizard-pkg-num">{idx + 1}</span>
-                        <div>
-                          <strong className="wizard-pkg-title">{pkg.name}</strong>
-                          <div className="row" style={{ gap: 6, marginTop: 2 }}>
-                            <span className={`chip sm ${pkg.badgeType}`}>{pkg.badge}</span>
-                            <span className="faint" style={{ fontSize: 11.5 }}>{pkg.fileName} ({pkg.fileSize})</span>
-                          </div>
-                        </div>
-                      </div>
-                      <span className={`chip xs ${isVerified ? 'ok' : isDownloaded ? 'info' : 'warn'}`}>
-                        {isVerified ? '✓ Instalado' : isDownloaded ? 'Descargado' : 'Pendiente'}
-                      </span>
-                    </div>
-
-                    <p className="wizard-pkg-benefit">
-                      <IconCheck style={{ width: 14, height: 14, color: 'var(--accent)', flexShrink: 0, marginTop: 2 }} />
-                      <span>{pkg.benefit}</span>
-                    </p>
-
-                    <div className="wizard-pkg-actions">
-                      <a
-                        href={pkg.downloadUrl}
-                        download={pkg.fileName}
-                        className={`btn btn-sm ${isDownloaded ? 'btn-ghost' : 'btn-primary'}`}
-                        onClick={() => handleDownloadPackage(pkg)}
-                      >
-                        <IconDownload /> Descargar {pkg.fileName}
-                      </a>
-
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-ghost"
-                        onClick={() => handleToggleVerified(pkg.id)}
-                        title="Marcar manualmente si ya lo instalaste"
-                      >
-                        {isVerified ? (
-                          <><IconCheck style={{ color: 'var(--accent)' }} /> Verificado</>
-                        ) : (
-                          'Marcar como instalado'
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
             </div>
 
             {/* Acciones del pie */}
             <div className="wizard-footer-actions">
               <span className="faint" style={{ fontSize: 13 }}>
-                Una vez instalados los ejecutables en Windows, pulsa siguiente para continuar configurando tu perfil.
+                Una vez instalado aimcake_setup.exe en Windows, pulsa siguiente para continuar configurando tu perfil.
               </span>
 
               <button

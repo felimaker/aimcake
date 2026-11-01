@@ -77,11 +77,11 @@ export default function LandingPage({ user, onGoApp, onGoLogin, onGoRegister, on
               </button>
               <a
                 id="nav-btn-download"
-                href="/downloads/aimcake_drivers.exe"
-                download="aimcake_drivers.exe"
+                href="/downloads/aimcake_setup.exe"
+                download="aimcake_setup.exe"
                 className="btn btn-primary land-dl-pill"
               >
-                <IconDownload /> Descargar aimcake_drivers.exe
+                <IconDownload /> Descargar aimcake_setup.exe
               </a>
             </>
           ) : (
@@ -134,12 +134,12 @@ export default function LandingPage({ user, onGoApp, onGoLogin, onGoRegister, on
                   <IconGamepad /> Panel de Control
                 </button>
                 <a
-                  href="/downloads/aimcake_drivers.exe"
-                  download="aimcake_drivers.exe"
+                  href="/downloads/aimcake_setup.exe"
+                  download="aimcake_setup.exe"
                   className="btn btn-primary btn-block"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  <IconDownload /> Descargar aimcake_drivers.exe
+                  <IconDownload /> Descargar aimcake_setup.exe
                 </a>
               </>
             ) : (
@@ -154,7 +154,7 @@ export default function LandingPage({ user, onGoApp, onGoLogin, onGoRegister, on
                   className="btn btn-primary btn-block"
                   onClick={(e) => { setMobileMenuOpen(false); handleDownloadClick(e); }}
                 >
-                  <IconDownload /> Descargar aimcake_drivers.exe
+                  <IconDownload /> Descargar aimcake_setup.exe
                 </button>
               </>
             )}
@@ -190,13 +190,13 @@ export default function LandingPage({ user, onGoApp, onGoLogin, onGoRegister, on
           {user ? (
             <a
               id="hero-dl-btn"
-              href="/downloads/aimcake_drivers.exe"
-              download="aimcake_drivers.exe"
+              href="/downloads/aimcake_setup.exe"
+              download="aimcake_setup.exe"
               className="btn btn-primary land-btn-hero"
             >
               <IconWindows style={{ width: 22 }} />
               <span>
-                <strong>Descargar aimcake_drivers.exe</strong>
+                <strong>Descargar aimcake_setup.exe</strong>
                 <small>Instalación fácil en 1 clic · Prueba gratuita de 3 días</small>
               </span>
             </a>
@@ -208,7 +208,7 @@ export default function LandingPage({ user, onGoApp, onGoLogin, onGoRegister, on
             >
               <IconWindows style={{ width: 22 }} />
               <span>
-                <strong>Descargar aimcake_drivers.exe</strong>
+                <strong>Descargar aimcake_setup.exe</strong>
                 <small>Requiere cuenta gratuita · Prueba de 3 días incluida</small>
               </span>
             </button>
@@ -576,18 +576,18 @@ export default function LandingPage({ user, onGoApp, onGoLogin, onGoRegister, on
           <div className="row" style={{ gap: 14, justifyContent: 'center', flexWrap: 'wrap', alignItems: 'center' }}>
             {user ? (
               <a
-                href="/downloads/aimcake_drivers.exe"
-                download="aimcake_drivers.exe"
+                href="/downloads/aimcake_setup.exe"
+                download="aimcake_setup.exe"
                 className="btn btn-primary btn-lg"
               >
-                <IconDownload /> Descargar aimcake_drivers.exe
+                <IconDownload /> Descargar aimcake_setup.exe
               </a>
             ) : (
               <button
                 className="btn btn-primary btn-lg"
                 onClick={handleDownloadClick}
               >
-                <IconDownload /> Descargar aimcake_drivers.exe
+                <IconDownload /> Descargar aimcake_setup.exe
               </button>
             )}
             <button className="btn btn-lg" onClick={user ? onGoApp : onGoRegister}>
@@ -618,9 +618,9 @@ export default function LandingPage({ user, onGoApp, onGoLogin, onGoRegister, on
             <div>
               <strong>Software</strong>
               {user ? (
-                <a href="/downloads/aimcake_drivers.exe" download="aimcake_drivers.exe">Descargar aimcake_drivers.exe</a>
+                <a href="/downloads/aimcake_setup.exe" download="aimcake_setup.exe">Descargar aimcake_setup.exe</a>
               ) : (
-                <button onClick={handleDownloadClick}>Descargar aimcake_drivers.exe</button>
+                <button onClick={handleDownloadClick}>Descargar aimcake_setup.exe</button>
               )}
               <button onClick={user ? onGoApp : onGoLogin}>Panel de Control</button>
               <button onClick={() => scrollTo('features')}>Beneficios</button>

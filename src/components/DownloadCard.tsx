@@ -40,10 +40,10 @@ export default function DownloadCard({ userEmail, compact, onRequireLogin }: Pro
             <span className="chip sm ok"><IconGamepad /> 1000 Hz / 0.1 ms</span>
           </div>
 
-          <h3 className="dl-title">Drivers de AimCake para Windows PC</h3>
+          <h3 className="dl-title">Instalador AimCake para Windows PC</h3>
           <p className="dl-sub">
             Instalador oficial para Windows 10 y Windows 11. Instala los componentes de alta velocidad necesarios
-            para activar el Aim Assist original y rotacional con tu ratón y teclado a 1000 Hz.
+            para activar el Aim Assist nativo con tu ratón y teclado a 1000 Hz.
           </p>
 
           <div className="dl-actions">
@@ -51,13 +51,13 @@ export default function DownloadCard({ userEmail, compact, onRequireLogin }: Pro
               <>
                 <a
                   id="download-app-exe"
-                  href="/downloads/aimcake_drivers.exe"
-                  download="aimcake_drivers.exe"
+                  href="/downloads/aimcake_setup.exe"
+                  download="aimcake_setup.exe"
                   className="btn btn-primary btn-lg dl-btn"
                 >
                   <IconDownload />
                   <span>
-                    <strong>Descargar aimcake_drivers.exe</strong>
+                    <strong>Descargar aimcake_setup.exe</strong>
                     <small>Instalador oficial Windows 64-bit · ~6.3 MB</small>
                   </span>
                 </a>
@@ -72,7 +72,7 @@ export default function DownloadCard({ userEmail, compact, onRequireLogin }: Pro
                 >
                   <IconLock />
                   <span>
-                    <strong>Crear cuenta para descargar aimcake_drivers.exe</strong>
+                    <strong>Crear cuenta para descargar aimcake_setup.exe</strong>
                     <small>Acceso inmediato · 3 días de prueba gratis</small>
                   </span>
                 </button>
@@ -89,7 +89,7 @@ export default function DownloadCard({ userEmail, compact, onRequireLogin }: Pro
             <span className="dl-step-num">1</span>
             <div>
               <strong>Descarga el instalador</strong>
-              <small>Guarda <code>aimcake_drivers.exe</code> en tu equipo.</small>
+              <small>Guarda <code>aimcake_setup.exe</code> en tu equipo.</small>
             </div>
           </div>
           <div className="dl-step">
