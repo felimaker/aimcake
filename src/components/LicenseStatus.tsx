@@ -175,14 +175,14 @@ export default function LicenseStatus({ hwid, license, isDebug, onGoAccount, acc
         ) : null}
 
         <section className="plan">
-          <div className="card-title" style={{ color: 'var(--accent)' }}>Plan Pro</div>
-          <div className="plan-price">$4.99<small> / mes</small></div>
+          <div className="card-title" style={{ color: 'var(--accent)' }}>Plan Pro Mensual</div>
+          <div className="plan-price">$15<small> USD / mes</small></div>
           <ul>
-            <li><IconCheck /> Emulación Xbox 360 a 1000 Hz</li>
-            <li><IconCheck /> Curvas cinemáticas y perfiles ilimitados</li>
-            <li><IconCheck /> Mapeo completo de teclado y ratón</li>
-            <li><IconCheck /> 3 días de prueba gratuita por equipo</li>
-            <li><IconCheck /> Cancela cuando quieras desde Stripe</li>
+            <li><IconCheck /> Emulación Xbox 360 y DualShock 4 a 1000 Hz</li>
+            <li><IconCheck /> Curvas cinemáticas Bézier y perfiles ilimitados</li>
+            <li><IconCheck /> Aislamiento de 1 teclado y 1 ratón exclusivos</li>
+            <li><IconCheck /> 3 días de prueba gratis (+3 días extra con celular)</li>
+            <li><IconCheck /> Planes Semanal ($5), Mensual ($15) y Anual ($100)</li>
           </ul>
           <button id="subscribe" className="btn btn-primary btn-block" onClick={license.subscribe} disabled={!license.session || license.busy || isActive}>
             {isActive ? 'Ya eres Pro' : license.session ? 'Suscribirse con Stripe' : demoSession ? 'Requiere Supabase configurado' : 'Inicia sesión para suscribirte'}

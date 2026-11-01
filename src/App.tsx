@@ -447,6 +447,7 @@ export default function App() {
                 devices={devices}
                 onRefreshStatus={refreshStatus}
                 onSetController={setActiveController}
+                onUpdateProfile={upsert}
                 onGo={(v) => { setEditingId(activeProfile.id); setView(v); }}
                 toast={toast}
               />

@@ -1,17 +1,15 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import type { ControllerType, EngineStatus, InputDevice, Profile, SoftwarePackageId } from '../types';
-import { checkProfile, missingText } from '../lib/profiles';
-import { CONTROLLER_BY_ID } from '../lib/controllers';
+import { useState, useMemo } from 'react';
+import type { ControllerType, EngineStatus, InputDevice, Profile } from '../types';
+import { checkProfile } from '../lib/profiles';
 import { isMouseInput } from '../lib/keys';
 import { bridge, isTauri } from '../services/tauriBridge';
-import ControllerPicker from './ControllerPicker';
 import {
-  IconAlert, IconArrowRight, IconCheck, IconChevron, IconChip, IconCpu, IconDownload, IconGamepad,
-  IconKeyboard, IconLayers, IconMouse, IconRadar, IconRefresh, IconShield, IconSpark, IconWindows, IconX
+  IconArrowRight, IconCheck, IconChip, IconCpu, IconCurve, IconDownload,
+  IconGamepad, IconKeyboard, IconLayers, IconMouse, IconRefresh, IconSpark
 } from './Icons';
 
-export type StepId = 'driver' | 'controller' | 'devices' | 'profile';
-type GoView = 'devices' | 'mapping' | 'profiles';
+export type StepNum = 1 | 2 | 3 | 4 | 5;
+type GoView = 'devices' | 'mapping' | 'curve' | 'profiles';
 
 interface Props {
   status: EngineStatus | null;
@@ -19,879 +17,643 @@ interface Props {
   devices: InputDevice[];
   onRefreshStatus: () => Promise<void>;
   onSetController: (c: ControllerType) => void;
+  onUpdateProfile?: (p: Profile) => void;
   onGo: (view: GoView) => void;
   toast: (kind: 'error' | 'success' | 'info', text: string) => void;
 }
 
-const COLLAPSE_KEY = 'xcb.checklist.collapsed';
-
-/* ------------------------------------------------------------------ */
-/* Especificación de software requerido en Windows                    */
-/* ------------------------------------------------------------------ */
-interface SoftwarePackage {
-  id: SoftwarePackageId;
-  stepNum: number;
-  shortLabel: string;
-  name: string;
-  badge: string;
-  badgeType: 'ok' | 'info' | 'warn';
-  fileName: string;
-  fileSize: string;
-  downloadUrl: string;
-  purpose: string;
-  whyRequired: string;
-  installInstructions: string;
-}
-
-const SOFTWARE_LIST: SoftwarePackage[] = [
-  {
-    id: 'vcredist',
-    stepNum: 1,
-    shortLabel: 'VC++',
-    name: 'Microsoft Visual C++ 2015-2022 Redistributable (x64)',
-    badge: 'Runtime Oficial Microsoft',
-    badgeType: 'info',
-    fileName: 'vc_redist.x64.exe',
-    fileSize: '~25.6 MB',
-    downloadUrl: '/downloads/vc_redist.x64.exe',
-    purpose: 'Librerías C/C++ de sistema y temporizadores de 1 ms',
-    whyRequired: 'Obligatorio en Windows para ejecutar llamadas nativas a 1000 Hz, inyectar el bus de mando y evitar errores de DLL faltantes (vcruntime140.dll).',
-    installInstructions: 'Abre vc_redist.x64.exe, pulsa «Instalar» y reinicia el PC si Windows lo solicita.',
-  },
-  {
-    id: 'vigembus',
-    stepNum: 2,
-    shortLabel: 'ViGEmBus',
-    name: 'Driver Kernel ViGEmBus (Virtual Gamepad Emulation Bus)',
-    badge: 'WHQL Certificado Microsoft',
-    badgeType: 'ok',
-    fileName: 'ViGEmBus_Setup.exe',
-    fileSize: '~6.3 MB',
-    downloadUrl: '/downloads/ViGEmBus_Setup.exe',
-    purpose: 'Controlador de emulación en modo kernel de Windows',
-    whyRequired: 'Crea el gamepad virtual Xbox 360 o DualShock 4 que Windows y los juegos reconocen a nivel de hardware para activar el Aim Assist.',
-    installInstructions: 'Abre ViGEmBus_Setup.exe, concede permisos de administrador en el UAC y completa el asistente en 15 segundos.',
-  },
-  {
-    id: 'aimcake_drivers',
-    stepNum: 3,
-    shortLabel: 'Drivers AimCake',
-    name: 'AimCake Driver Suite & Device Isolator',
-    badge: 'Driver Oficial AimCake',
-    badgeType: 'ok',
-    fileName: 'aimcake_drivers.exe',
-    fileSize: '~6.3 MB',
-    downloadUrl: '/downloads/aimcake_drivers.exe',
-    purpose: 'Filtro de aislamiento de hardware y captura Raw Input',
-    whyRequired: 'Aísla exclusivamente el teclado y ratón seleccionados para que tus entradas se traduzcan al mando sin colisión de doble puntero en Windows.',
-    installInstructions: 'Ejecuta aimcake_drivers.exe para registrar los servicios y controladores exclusivos de AimCake en Windows.',
-  },
-  {
-    id: 'aimcake_bridge',
-    stepNum: 4,
-    shortLabel: 'Cliente Desktop',
-    name: 'AimCake Desktop Client / Controller Bridge (1000 Hz)',
-    badge: 'Cliente de Escritorio Windows',
-    badgeType: 'info',
-    fileName: 'AimCake_Setup.exe',
-    fileSize: '~6.3 MB',
-    downloadUrl: '/downloads/AimCake_Setup.exe',
-    purpose: 'Aplicación cliente con System Tray, telemetría e IPC nativo',
-    whyRequired: 'Los navegadores web tienen limitaciones de sandbox de seguridad; la app de escritorio permite captura sin restricciones y latencia de 1 ms.',
-    installInstructions: 'Instala la aplicación de escritorio AimCake para tener acceso directo, icono en la barra de tareas e inicio con Windows.',
-  },
+const POPULAR_GAMES = [
+  'Call of Duty: Warzone',
+  'Call of Duty: Modern Warfare III',
+  'Apex Legends',
+  'Fortnite',
+  'Battlefield 2042',
+  'Halo Infinite',
+  'Destiny 2',
 ];
 
-/* ------------------------------------------------------------------ */
-/* Componentes auxiliares de la guía                                  */
-/* ------------------------------------------------------------------ */
-function Flow({ children }: { children: ReactNode }) {
-  return <div className="gflow">{children}</div>;
-}
-
-function Frame({ n, caption, children, done }: { n: number; caption: string; children: ReactNode; done?: boolean }) {
-  return (
-    <figure className={`gframe ${done ? 'done' : ''}`}>
-      <span className="gframe-n">{done ? <IconCheck /> : n}</span>
-      <div className="gframe-body">{children}</div>
-      <figcaption>{caption}</figcaption>
-    </figure>
-  );
-}
-
-function Faq({ items }: { items: [string, ReactNode][] }) {
-  return (
-    <div className="faq">
-      <div className="faq-title">Preguntas frecuentes sobre la instalación</div>
-      {items.map(([q, a], i) => (
-        <details key={i} className="faq-item">
-          <summary><span>{q}</span><IconChevron /></summary>
-          <div className="faq-a">{a}</div>
-        </details>
-      ))}
-    </div>
-  );
-}
-
-function HowTo({ steps }: { steps: ReactNode[] }) {
-  return (
-    <ol className="howto">
-      {steps.map((s, i) => <li key={i}><span>{i + 1}</span><p>{s}</p></li>)}
-    </ol>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* Checklist Principal                                                */
-/* ------------------------------------------------------------------ */
-export default function SetupChecklist({ status, profile, devices, onRefreshStatus, onSetController, onGo, toast }: Props) {
+export default function SetupChecklist({
+  status,
+  profile,
+  devices,
+  onRefreshStatus,
+  onSetController,
+  onUpdateProfile,
+  onGo,
+  toast,
+}: Props) {
   const check = checkProfile(profile, devices);
   const s = profile.settings;
+
+  // Dispositivos actuales
   const kb = devices.find((d) => d.id === s.keyboards[0]);
   const ms = devices.find((d) => d.id === s.mice[0]);
-  const keyCount = s.bindings.length;
-  const mouseKeys = s.bindings.filter((b) => isMouseInput(b.input)).length;
+  const mappedCount = s.bindings.length;
+  const mouseBindingsCount = s.bindings.filter((b) => isMouseInput(b.input)).length;
 
-  const verif = status?.verification;
-  const pkgs = verif?.packages;
+  // Estado del driver en Windows
+  const driverReady = !!status?.driverOk;
 
-  // Estadísticas visuales en tiempo real de los 4 paquetes de software
-  const downloadedCount = SOFTWARE_LIST.filter((p) => pkgs?.[p.id]?.downloaded).length;
-  const verifiedCount = SOFTWARE_LIST.filter((p) => pkgs?.[p.id]?.verified).length;
-  const allSoftwareVerified = verifiedCount === SOFTWARE_LIST.length;
-  const driverReady = !!status?.driverOk || allSoftwareVerified;
-
-  const done: Record<StepId, boolean> = {
-    driver: driverReady,
-    controller: check.controller,
-    devices: check.keyboard && check.mouse,
-    profile: check.complete,
+  // Estados de completitud de cada uno de los 5 pasos
+  const stepCompleted: Record<StepNum, boolean> = {
+    1: driverReady,
+    2: Boolean(profile.name.trim().length > 0),
+    3: Boolean(s.controller && s.keyboards.length > 0 && s.mice.length > 0),
+    4: Boolean(mappedCount >= 4),
+    5: Boolean(s.config.sensitivity > 0 && s.config.exponent > 0),
   };
 
-  const order: StepId[] = ['driver', 'controller', 'devices', 'profile'];
-  const doneCount = order.filter((k) => done[k]).length;
-  const allDone = doneCount === order.length;
-  const firstPending = order.find((k) => !done[k]) ?? 'driver';
+  const completedCount = Object.values(stepCompleted).filter(Boolean).length;
 
-  const [selected, setSelected] = useState<StepId>(firstPending);
-  const [userPicked, setUserPicked] = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
-  const [installing, setInstalling] = useState(false);
-  const [checking, setChecking] = useState(false);
-  const [authorizing, setAuthorizing] = useState(false);
-  const [installNote, setInstallNote] = useState<{ kind: 'ok' | 'warn' | 'error'; text: string } | null>(null);
-
-  useEffect(() => { if (!userPicked) setSelected(firstPending); }, [firstPending, userPicked]);
-  useEffect(() => { if (!allDone) setCollapsed(false); }, [allDone]);
-
-  const pick = (id: StepId) => { setSelected(id); setUserPicked(true); };
-  const toggleCollapse = () => {
-    const next = !collapsed;
-    setCollapsed(next);
-    localStorage.setItem(COLLAPSE_KEY, next ? '1' : '0');
-  };
-
-  const recheck = async () => {
-    setChecking(true);
-    try {
-      await onRefreshStatus();
-      toast('info', 'Comprobación de software y hardware completada');
-    } finally {
-      setChecking(false);
+  // Paso inicial según el primer pendiente
+  const firstPending: StepNum = useMemo(() => {
+    for (let i = 1; i <= 5; i++) {
+      if (!stepCompleted[i as StepNum]) return i as StepNum;
     }
-  };
+    return 1;
+  }, [stepCompleted]);
 
-  // Verificación verídica mediante autorización explícita del navegador (WebHID / Gamepad API)
-  const handleAuthorizeBrowser = async () => {
-    setAuthorizing(true);
-    try {
-      toast('info', 'El navegador solicitará permiso para escanear tus dispositivos HID y mandos.');
-      const result = await bridge.requestBrowserAuthorization();
-      await onRefreshStatus();
-      if (result.gamepadDetected) {
-        toast('success', `¡Mando detectado en Windows! (${result.gamepadNames[0]})`);
-      } else if (result.authorizedDevicesCount > 0) {
-        toast('success', `Navegador autorizado: ${result.authorizedDevicesCount} dispositivos reconocidos`);
-      } else {
-        toast('success', 'Navegador verificado y autorizado con éxito.');
-      }
-    } catch (e: any) {
-      toast('error', `Error durante la verificación: ${e?.message || e}`);
-    } finally {
-      setAuthorizing(false);
-    }
-  };
+  const [activeStep, setActiveStep] = useState<StepNum>(firstPending);
+  const [profileNameDraft, setProfileNameDraft] = useState(profile.name);
+  const [checkingDrivers, setCheckingDrivers] = useState(false);
+  const [installingAuto, setInstallingAuto] = useState(false);
 
-  const handleDownloadPackage = (pkg: SoftwarePackage) => {
-    bridge.recordPackageDownload(pkg.id);
-    onRefreshStatus();
-    toast('success', `Descarga iniciada: ${pkg.fileName}. Al terminar, ejecútalo en Windows para instalar.`);
-  };
+  // Sincronizar nombre si cambia externamente
+  useMemo(() => {
+    setProfileNameDraft(profile.name);
+  }, [profile.name]);
 
-  const handleTogglePackage = (pkgId: SoftwarePackageId) => {
-    bridge.togglePackageVerified(pkgId);
-    onRefreshStatus();
-    toast('info', 'Estado de instalación actualizado.');
-  };
-
-  const downloadAllPackages = () => {
-    SOFTWARE_LIST.forEach((pkg, i) => {
-      setTimeout(() => {
-        bridge.recordPackageDownload(pkg.id);
-        const a = document.createElement('a');
-        a.href = pkg.downloadUrl;
-        a.download = pkg.fileName;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-      }, i * 350);
+  const handleSaveProfileName = (name: string, game?: string) => {
+    if (!onUpdateProfile) return;
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    onUpdateProfile({
+      ...profile,
+      name: trimmed,
+      game: game !== undefined ? game : profile.game,
+      updatedAt: Date.now(),
     });
-    onRefreshStatus();
-    toast('success', 'Descargando los 4 instaladores de Windows a tu carpeta de descargas.');
+    toast('success', `Perfil actualizado: «${trimmed}»`);
   };
 
-  const installAuto = async () => {
-    setInstalling(true);
-    setInstallNote(null);
+  const handleDeviceChange = (type: 'keyboard' | 'mouse', deviceId: string) => {
+    if (!onUpdateProfile) return;
+    const nextSettings = {
+      ...s,
+      keyboards: type === 'keyboard' ? (deviceId ? [deviceId] : []) : s.keyboards,
+      mice: type === 'mouse' ? (deviceId ? [deviceId] : []) : s.mice,
+    };
+    onUpdateProfile({
+      ...profile,
+      settings: nextSettings,
+      updatedAt: Date.now(),
+    });
+    toast('info', `${type === 'keyboard' ? 'Teclado' : 'Ratón'} asignado al perfil.`);
+  };
+
+  const handleRecheckDriver = async () => {
+    setCheckingDrivers(true);
     try {
-      const r = await bridge.installDriver();
       await onRefreshStatus();
-      if (r.cancelled) {
-        setInstallNote({ kind: 'warn', text: 'Cancelaste el asistente. Puedes volver a ejecutarlo cuando quieras.' });
-      } else if (r.rebootRequired) {
-        setInstallNote({ kind: 'warn', text: 'Instalado. Windows requiere reiniciar el equipo para activar el bus de emulación.' });
-      } else if (r.driverOk) {
-        setInstallNote({ kind: 'ok', text: 'Todos los drivers y paquetes se encuentran instalados y respondiendo.' });
-        toast('success', 'Software y drivers de AimCake instalados correctamente.');
-        setUserPicked(false);
-      } else {
-        setInstallNote({ kind: 'error', text: `El instalador finalizó (código ${r.exitCode}). Pulsa «Comprobar de nuevo» o reinicia tu PC.` });
-      }
-    } catch (e: any) {
-      setInstallNote({ kind: 'error', text: String(e?.message ?? e) });
+      toast('info', 'Comprobación de drivers actualizada.');
     } finally {
-      setInstalling(false);
+      setCheckingDrivers(false);
     }
   };
 
-  const STEPS: Record<StepId, { n: number; title: string; icon: ReactNode; okText: string; pendingText: string }> = useMemo(() => ({
-    driver: {
-      n: 1,
-      title: 'Software y Drivers de Windows',
-      icon: <IconChip />,
-      okText: '4 de 4 instalados · 100% verificado',
-      pendingText: `${verifiedCount} de 4 instalados (${downloadedCount} descargados)`,
-    },
-    controller: {
-      n: 2,
-      title: 'Mando a emular',
-      icon: <IconGamepad />,
-      okText: s.controller ? `Se emulará un ${CONTROLLER_BY_ID[s.controller].name}` : '',
-      pendingText: 'Elige qué mando quieres emular',
-    },
-    devices: {
-      n: 3,
-      title: 'Teclado y ratón exclusivos',
-      icon: <IconKeyboard />,
-      okText: `${kb?.name ?? 'Teclado elegido'} · ${ms?.name ?? 'ratón elegido'}`,
-      pendingText: !check.keyboard && !check.mouse ? 'Falta elegir teclado y ratón' : !check.keyboard ? 'Falta elegir el teclado' : 'Falta elegir el ratón',
-    },
-    profile: {
-      n: 4,
-      title: 'Mapeo y calibración de perfil',
-      icon: <IconLayers />,
-      okText: `«${profile.name}» · ${keyCount} ${keyCount === 1 ? 'tecla asignada' : 'teclas asignadas'}`,
-      pendingText: check.complete ? '' : missingText(check),
-    },
-  }), [status, s.controller, kb, ms, check, profile.name, keyCount, verifiedCount, downloadedCount]);
+  const handleInstallAuto = async () => {
+    setInstallingAuto(true);
+    try {
+      const res = await bridge.installDriver();
+      await onRefreshStatus();
+      if (res.driverOk) {
+        toast('success', 'ViGEmBus instalado y verificado con éxito en Windows.');
+      } else if (res.rebootRequired) {
+        toast('info', 'Instalación completa. Windows requiere reiniciar el equipo.');
+      } else if (res.cancelled) {
+        toast('info', 'Instalación cancelada.');
+      } else {
+        toast('error', `Error en la instalación (código ${res.exitCode}).`);
+      }
+    } catch (e: any) {
+      toast('error', `Error al instalar: ${e?.message || e}`);
+    } finally {
+      setInstallingAuto(false);
+    }
+  };
 
-  /* ---------------- Contenido de ayuda por paso ---------------- */
-  const help: Record<StepId, ReactNode> = {
-    driver: (
-      <div className="stack" style={{ gap: 20 }}>
-        {/* VERIFICACIÓN VERÍDICA CON EL NAVEGADOR */}
-        <section className="pkg-verif-card" id="browser-verification-box">
-          <div className="pkg-verif-header">
-            <div className="row" style={{ gap: 10 }}>
-              <div className="pkg-verif-icon">
-                <IconShield style={{ width: 22, height: 22 }} />
-              </div>
-              <div>
-                <strong style={{ fontSize: 15, display: 'block' }}>Verificación Verídica del Navegador (WebHID & Gamepad API)</strong>
-                <small className="faint">El navegador solicita tu autorización explícita para escanear mandos y dispositivos USB/HID de Windows.</small>
-              </div>
-            </div>
-            <span className={`chip sm ${allSoftwareVerified ? 'ok' : 'warn'}`}>
-              <IconSpark style={{ width: 13, height: 13 }} />
-              {allSoftwareVerified ? 'Software 100% Verificado' : 'Verificación requerida'}
+  const STEPS_META = [
+    { num: 1 as StepNum, title: 'Drivers (.exe)', label: 'Drivers Kernel', icon: <IconChip /> },
+    { num: 2 as StepNum, title: 'Perfil', label: 'Nombre y Juego', icon: <IconLayers /> },
+    { num: 3 as StepNum, title: 'Dispositivos', label: 'Mando, Mouse y Teclado', icon: <IconGamepad /> },
+    { num: 4 as StepNum, title: 'Mapeo', label: 'Asignación de Teclas', icon: <IconKeyboard /> },
+    { num: 5 as StepNum, title: 'Curva', label: 'Bézier y Deadzone', icon: <IconCurve /> },
+  ];
+
+  return (
+    <div className="card setup-wizard-card">
+      {/* Wizard Header Bar */}
+      <div className="wizard-top-bar">
+        <div className="wizard-title-group">
+          <div className="wizard-badge-icon">
+            <IconSpark style={{ width: 20, height: 20, color: 'var(--accent)' }} />
+          </div>
+          <div>
+            <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>
+              Configuración Secuencial del Sistema
+            </h3>
+            <span className="faint" style={{ fontSize: 12.5 }}>
+              Paso {activeStep} de 5 · {completedCount === 5 ? '¡Todo listo para jugar!' : `${5 - completedCount} paso(s) por completar`}
             </span>
           </div>
+        </div>
 
-          <div className="pkg-verif-grid">
-            <div className="pkg-verif-item">
-              <span className="faint">Sistema Operativo</span>
-              <strong className="row" style={{ gap: 6 }}>
-                <IconWindows style={{ width: 15, height: 15, color: 'var(--accent-2)' }} />
-                {verif?.osName || 'Windows 10 / 11 (64-bit)'}
-              </strong>
-            </div>
+        <div className="wizard-progress-pill">
+          <div className="wizard-progress-fill" style={{ width: `${(completedCount / 5) * 100}%` }} />
+          <span>{completedCount}/5 Completados</span>
+        </div>
+      </div>
 
-            <div className="pkg-verif-item">
-              <span className="faint">Autorización del Navegador</span>
-              <strong style={{ color: verif?.browserAuthorized ? 'var(--accent)' : 'var(--warn)' }}>
-                {verif?.browserAuthorized ? '✓ Autorización Concedida' : '⚠ Requiere Autorización'}
-              </strong>
-            </div>
-
-            <div className="pkg-verif-item">
-              <span className="faint">Mando Virtual en Windows</span>
-              <strong>
-                {verif?.gamepadDetected ? (
-                  <span style={{ color: 'var(--accent)' }}>✓ Detectado: {verif.gamepadNames[0]}</span>
-                ) : (
-                  <span className="faint">Se conectará al iniciar emulación</span>
-                )}
-              </strong>
-            </div>
-
-            <div className="pkg-verif-item">
-              <span className="faint">Dispositivos HID Autorizados</span>
-              <strong>
-                {verif?.authorizedDevicesCount ? (
-                  <span style={{ color: 'var(--accent)' }}>{verif.authorizedDevicesCount} dispositivo(s) vinculados</span>
-                ) : (
-                  <span className="faint">Sin restricción</span>
-                )}
-              </strong>
-            </div>
-          </div>
-
-          <div className="pkg-verif-actions">
+      {/* Stepper Navigation Tabs */}
+      <div className="wizard-stepper">
+        {STEPS_META.map((st) => {
+          const isDone = stepCompleted[st.num];
+          const isCurrent = activeStep === st.num;
+          return (
             <button
-              id="btn-auth-browser"
+              key={st.num}
               type="button"
-              className="btn btn-primary"
-              onClick={handleAuthorizeBrowser}
-              disabled={authorizing}
+              className={`wizard-step-btn ${isCurrent ? 'active' : ''} ${isDone ? 'done' : ''}`}
+              onClick={() => setActiveStep(st.num)}
             >
-              {authorizing ? <><span className="spinner" /> Solicitando permiso al navegador…</> : <><IconRadar /> Pedir Autorización al Navegador y Verificar</>}
+              <div className="wizard-step-circle">
+                {isDone ? <IconCheck style={{ width: 14, height: 14 }} /> : st.num}
+              </div>
+              <div className="wizard-step-info">
+                <span className="wizard-step-num-text">Paso {st.num}</span>
+                <strong className="wizard-step-name">{st.title}</strong>
+              </div>
             </button>
-            <button
-              id="btn-recheck-all"
-              type="button"
-              className="btn"
-              onClick={recheck}
-              disabled={checking}
-            >
-              {checking ? <span className="spinner" /> : <IconRefresh />} Comprobar Estado
-            </button>
-            {!isTauri && (
-              <small className="faint" style={{ marginLeft: 'auto', alignSelf: 'center', fontSize: 11.5 }}>
-                Google Chrome y Microsoft Edge abrirán una ventana emergente para que confirmes el acceso a dispositivos.
-              </small>
-            )}
-          </div>
-        </section>
+          );
+        })}
+      </div>
 
-        {/* DETALLE DE CADA SOFTWARE CON EXPLICACIÓN CONCRETA */}
-        <div>
-          <h4 style={{ fontSize: 16, margin: '14px 0 10px' }}>Explicación detallada de cada software obligatorio</h4>
-          <div className="pkg-list">
-            {SOFTWARE_LIST.map((pkg) => {
-              const state = pkgs ? pkgs[pkg.id] : undefined;
-              const isDownloaded = !!state?.downloaded;
-              const isVerified = !!state?.verified;
+      {/* Wizard Step Body */}
+      <div className="wizard-content">
+        {/* ======================================================== */}
+        {/* PASO 1: INSTALACIÓN Y VALIDACIÓN DE DRIVERS (.EXE)       */}
+        {/* ======================================================== */}
+        {activeStep === 1 && (
+          <div className="wizard-pane animate-fade">
+            <div className="wizard-pane-header">
+              <div className="wizard-pane-icon"><IconChip /></div>
+              <div>
+                <h4>Paso 1: Instalación de Drivers (.exe) en Windows</h4>
+                <p className="faint">
+                  AimCake requiere el controlador de kernel ViGEmBus para crear el gamepad virtual que los juegos reconocen a 1000 Hz.
+                </p>
+              </div>
+              <span className={`chip ${driverReady ? 'ok' : 'warn'}`} style={{ marginLeft: 'auto' }}>
+                <span className="dot" />
+                {driverReady ? 'Driver Operativo' : 'Driver no detectado'}
+              </span>
+            </div>
 
-              return (
-                <div key={pkg.id} className={`pkg-card ${isVerified ? 'verified' : isDownloaded ? 'downloaded' : ''}`} id={`pkg-${pkg.id}`}>
-                  <div className="pkg-step-badge">{isVerified ? <IconCheck /> : pkg.stepNum}</div>
-
-                  <div className="pkg-main">
-                    <div className="pkg-header">
-                      <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
-                        <strong className="pkg-name">{pkg.name}</strong>
-                        <span className={`chip sm ${pkg.badgeType}`}>{pkg.badge}</span>
-                      </div>
-                      <span className="pkg-size faint">{pkg.fileName} ({pkg.fileSize})</span>
-                    </div>
-
-                    <p className="pkg-desc">{pkg.whyRequired}</p>
-
-                    <div className="pkg-instructions">
-                      <IconCpu style={{ width: 14, height: 14, flexShrink: 0, marginTop: 2, color: 'var(--accent-2)' }} />
-                      <span><strong>Instrucciones de instalación:</strong> {pkg.installInstructions}</span>
-                    </div>
-
-                    <div className="pkg-foot">
-                      <div className="row" style={{ gap: 10 }}>
-                        <a
-                          id={`dl-pkg-${pkg.id}`}
-                          href={pkg.downloadUrl}
-                          download={pkg.fileName}
-                          className={`btn btn-sm ${isDownloaded ? 'btn-ghost' : 'btn-primary'}`}
-                          onClick={() => handleDownloadPackage(pkg)}
-                        >
-                          <IconDownload />
-                          <span>Descargar {pkg.fileName}</span>
-                        </a>
-
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-ghost"
-                          onClick={() => handleTogglePackage(pkg.id)}
-                          title="Alternar estado de instalación verificado"
-                        >
-                          {isVerified ? (
-                            <><IconCheck style={{ color: 'var(--accent)' }} /> Instalado y verificado</>
-                          ) : isDownloaded ? (
-                            <><IconSpark /> Marcar como instalado</>
-                          ) : (
-                            'Ya lo tengo instalado'
-                          )}
-                        </button>
-                      </div>
-
-                      <div className="row" style={{ gap: 8 }}>
-                        <span className={`badge-status ${isDownloaded ? 'badge-ok' : 'badge-bad'}`}>
-                          📥 Descargado: {isDownloaded ? 'SÍ' : 'NO'}
-                        </span>
-                        <span className={`badge-status ${isVerified ? 'badge-ok' : 'badge-warn'}`}>
-                          ⚙️ Instalado: {isVerified ? 'SÍ' : 'NO'}
-                        </span>
-                      </div>
-                    </div>
+            <div className="wizard-pane-card-row">
+              {/* Tarjeta ViGEmBus */}
+              <div className={`wizard-pkg-item ${driverReady ? 'verified' : ''}`}>
+                <div className="wizard-pkg-main">
+                  <div className="row-between">
+                    <strong>ViGEmBus Virtual Gamepad Bus</strong>
+                    <span className="chip sm ok">WHQL Microsoft</span>
+                  </div>
+                  <p className="faint" style={{ fontSize: 13, margin: '8px 0' }}>
+                    Controlador kernel oficial que emula el mando Xbox 360 / DualShock 4 a nivel de hardware para habilitar el Aim Assist nativo.
+                  </p>
+                  <div className="row" style={{ gap: 10, marginTop: 12 }}>
+                    <a
+                      href="/downloads/ViGEmBus_Setup.exe"
+                      download="ViGEmBus_Setup.exe"
+                      className="btn btn-sm btn-primary"
+                    >
+                      <IconDownload /> Descargar ViGEmBus_Setup.exe (~6.3 MB)
+                    </a>
+                    {isTauri && (
+                      <button
+                        className="btn btn-sm"
+                        onClick={handleInstallAuto}
+                        disabled={installingAuto}
+                      >
+                        {installingAuto ? <span className="spinner" /> : <IconCpu />} Instalar Automático
+                      </button>
+                    )}
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* GUÍA VISUAL PASO A PASO */}
-        <div>
-          <h4 style={{ fontSize: 15, margin: '8px 0 10px' }}>Guía paso a paso en Windows</h4>
-          <Flow>
-            <Frame n={1} caption="1. Descarga los instaladores">
-              <div className="mk-btn primary"><IconDownload /> Descargar paquetes</div>
-            </Frame>
-            <Frame n={2} caption="2. Windows UAC: pulsa «Sí»">
-              <div className="mk-uac">
-                <div className="mk-uac-head"><IconShield /> Control de cuentas de usuario</div>
-                <small>¿Permitir cambios en el dispositivo?</small>
-                <div className="mk-uac-btns"><span className="mk-btn sm primary">Sí</span><span className="mk-btn sm">No</span></div>
               </div>
-            </Frame>
-            <Frame n={3} caption="3. Asistente: «Instalar»">
-              <div className="mk-win">
-                <div className="mk-win-bar"><i /><i /><i /> AimCake Driver Setup</div>
-                <div className="mk-win-body">
-                  <div className="mk-progress"><i /></div>
-                  <div className="mk-win-btns"><span className="mk-btn sm primary">Finalizar</span></div>
+
+              {/* Tarjeta AimCake Suite */}
+              <div className="wizard-pkg-item verified">
+                <div className="wizard-pkg-main">
+                  <div className="row-between">
+                    <strong>AimCake Driver & Device Isolator</strong>
+                    <span className="chip sm ok">Oficial AimCake</span>
+                  </div>
+                  <p className="faint" style={{ fontSize: 13, margin: '8px 0' }}>
+                    Aislamiento exclusivo de periféricos para que tu mouse y teclado se traduzcan limpiamente al mando sin doble cursor en pantalla.
+                  </p>
+                  <div className="row" style={{ gap: 10, marginTop: 12 }}>
+                    <a
+                      href="/downloads/aimcake_drivers.exe"
+                      download="aimcake_drivers.exe"
+                      className="btn btn-sm"
+                    >
+                      <IconDownload /> Descargar aimcake_drivers.exe
+                    </a>
+                  </div>
                 </div>
               </div>
-            </Frame>
-            <Frame n={4} caption="4. Estado Verde Verificado" done={allSoftwareVerified}>
-              <div className="mk-status"><span className="mk-dot ok" /> 100% Verificado</div>
-            </Frame>
-          </Flow>
-        </div>
+            </div>
 
-        {/* NOTIFICACIONES Y ALERTAS */}
-        {installNote && (
-          <div className={`alert ${installNote.kind === 'ok' ? 'success' : installNote.kind === 'warn' ? 'warn-alert' : 'error'}`}>
-            {installNote.kind === 'ok' ? <IconCheck /> : <IconAlert />}
-            <span>{installNote.text}</span>
+            {/* Acciones de comprobación */}
+            <div className="wizard-footer-actions">
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handleRecheckDriver}
+                disabled={checkingDrivers}
+              >
+                {checkingDrivers ? <span className="spinner" /> : <IconRefresh />} Validar Instalación de Drivers
+              </button>
+
+              <button
+                type="button"
+                className="btn"
+                onClick={() => setActiveStep(2)}
+                style={{ marginLeft: 'auto' }}
+              >
+                Siguiente: Perfil de Juego <IconArrowRight />
+              </button>
+            </div>
           </div>
         )}
 
-        {/* FAQS */}
-        <Faq items={[
-          [
-            '¿Por qué el navegador solicita autorización?',
-            <>Por seguridad de la plataforma web (estándar W3C), Google Chrome, Microsoft Edge y Brave no permiten que una página lea o configure periféricos USB, HID ni mandos sin que el usuario pulse explícitamente <strong>«Autorizar»</strong>. Esta confirmación garantiza que la verificación sea auténtica y verídica.</>,
-          ],
-          [
-            '¿Por qué son obligatorios estos 4 paquetes de software?',
-            <>
-              <strong>Visual C++</strong> proporciona las bibliotecas del compilador de Windows necesarias para hooks de 1 ms.
-              <strong>ViGEmBus</strong> crea el mando virtual a nivel de kernel para que los juegos activen Aim Assist.
-              <strong>AimCake Drivers</strong> aíslan tu ratón y teclado reales para que no hagan doble clic en Windows mientras juegas.
-              <strong>AimCake Client</strong> garantiza latencia real de 1000 Hz fuera del sandbox del navegador.
-            </>,
-          ],
-          [
-            '¿Es seguro instalar estos controladores en Windows 10 u 11?',
-            <>Completamente seguro. ViGEmBus es un proyecto de código abierto firmado con certificado WHQL de Microsoft utilizado por millones de jugadores (DS4Windows, BetterJoy). AimCake no modifica archivos del sistema ni instala publicidad.</>,
-          ],
-          [
-            '¿Tengo que reiniciar mi computadora?',
-            <>En el 95% de los casos no es necesario reiniciar. El driver se activa al instante. Solo si Windows tenía actualizaciones pendientes de Visual C++ podría solicitar un reinicio rápido.</>,
-          ],
-          [
-            '¿Afecta a mis periféricos físicos o a otros programas?',
-            <>No. Tus mandos reales de Xbox, PlayStation o tus ratones y teclados físicos siguen funcionando con total normalidad cuando la emulación esté en pausa o cerrada.</>,
-          ],
-        ]} />
-      </div>
-    ),
+        {/* ======================================================== */}
+        {/* PASO 2: NOMBRE DEL PERFIL Y JUEGO                        */}
+        {/* ======================================================== */}
+        {activeStep === 2 && (
+          <div className="wizard-pane animate-fade">
+            <div className="wizard-pane-header">
+              <div className="wizard-pane-icon"><IconLayers /></div>
+              <div>
+                <h4>Paso 2: Da Nombre a tu Perfil de Juego</h4>
+                <p className="faint">
+                  Cada perfil almacena de forma independiente su nombre, dispositivos exclusivos, mapeo de teclas y curva de sensibilidad.
+                </p>
+              </div>
+            </div>
 
-    controller: (
-      <>
-        <p className="help-lead">
-          Elige qué mando verá Windows. Para casi todos los juegos de PC el mejor es <strong>Xbox 360</strong>. Se guarda en el perfil <strong>«{profile.name}»</strong>.
-        </p>
-        <ControllerPicker compact value={s.controller} onChange={(c) => { onSetController(c); toast('success', `Mando: ${CONTROLLER_BY_ID[c].name}`); }} />
-        {s.controller && CONTROLLER_BY_ID[s.controller].note && <p className="faint cpick-note"><IconAlert /> {CONTROLLER_BY_ID[s.controller].note}</p>}
-        <HowTo steps={[
-          <>Haz clic en una de las tres tarjetas de arriba. Se guarda al instante.</>,
-          <>Si no sabes cuál elegir, usa <strong>Xbox 360</strong>: es el que reconoce casi cualquier juego sin configurar nada.</>,
-          <>Elige <strong>DualShock 4</strong> solo si el juego necesita un mando de PlayStation o quieres ver sus iconos (✕ ○ □ △).</>,
-        ]} />
-        <Faq items={[
-          ['¿Cuál me conviene?', <><strong>Xbox 360</strong> para Call of Duty, Fortnite, Apex, juegos de Steam o Game Pass. <strong>DualShock 4</strong> si el juego solo admite PlayStation. <strong>Xbox One / Series</strong> funciona igual que el de 360.</>],
-          ['¿Qué diferencia hay entre Xbox 360 y Xbox One?', <>Para los juegos de Windows, ninguna: los dos usan el mismo sistema (XInput) y tienen los mismos botones. AimCake emula los dos con total compatibilidad.</>],
-          ['El juego no reconoce el DualShock 4', <>Muchos juegos de PC solo leen mandos Xbox. Cambia a <strong>Xbox 360</strong>, o activa <em>Steam Input</em> para PlayStation si el juego está en Steam.</>],
-          ['¿Puedo cambiarlo con el emulador encendido?', <>Sí, pero el cambio se aplica la próxima vez que pulses <strong>Iniciar</strong>. Detén el emulador y vuelve a iniciarlo.</>],
-          ['¿Puedo tener un mando distinto en cada perfil?', <>Sí. Cada perfil guarda su propio mando, por ejemplo Xbox 360 para un shooter y DualShock 4 para otro juego.</>],
-        ]} />
-      </>
-    ),
+            <div className="wizard-pane-card">
+              <div className="field">
+                <label htmlFor="wizard-profile-name">Nombre del perfil activo</label>
+                <div className="row" style={{ gap: 10 }}>
+                  <input
+                    id="wizard-profile-name"
+                    type="text"
+                    className="input"
+                    value={profileNameDraft}
+                    onChange={(e) => setProfileNameDraft(e.target.value)}
+                    placeholder="Ej. Warzone Pro, Apex Ranked, COD MW3..."
+                    style={{ maxWidth: 380 }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleSaveProfileName(profileNameDraft);
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() => handleSaveProfileName(profileNameDraft)}
+                    disabled={!profileNameDraft.trim() || profileNameDraft.trim() === profile.name}
+                  >
+                    <IconCheck /> Guardar Nombre
+                  </button>
+                </div>
+              </div>
 
-    devices: (
-      <>
-        <p className="help-lead">
-          Elige <strong>un teclado</strong> y <strong>un ratón</strong> de la lista. Solo esos dos controlan el mando; el resto de dispositivos siguen funcionando con normalidad.
-        </p>
-        <div className="help-devs">
-          <div className={`help-dev ${check.keyboard ? 'ok' : ''}`}><IconKeyboard /><span><small>Teclado</small><strong>{check.keyboard ? (kb?.name ?? 'Elegido (desconectado)') : 'Sin elegir'}</strong></span>{check.keyboard ? <IconCheck /> : <IconAlert />}</div>
-          <div className={`help-dev ${check.mouse ? 'ok' : ''}`}><IconMouse /><span><small>Ratón</small><strong>{check.mouse ? (ms?.name ?? 'Elegido (desconectado)') : 'Sin elegir'}</strong></span>{check.mouse ? <IconCheck /> : <IconAlert />}</div>
-        </div>
-        <Flow>
-          <Frame n={1} caption="Abre Dispositivos">
-            <div className="mk-nav"><span>Panel</span><span className="on">Dispositivos</span><span>Licencia</span></div>
-          </Frame>
-          <Frame n={2} caption="«Detectar» del teclado y pulsa una tecla">
-            <div className="mk-row"><span className="mk-btn sm primary pulse"><IconRadar /> Pulsa una tecla…</span><kbd className="mk-key press">W</kbd></div>
-          </Frame>
-          <Frame n={3} caption="«Detectar» del ratón y muévelo">
-            <div className="mk-row"><span className="mk-btn sm primary pulse"><IconRadar /> Mueve el ratón…</span><span className="mk-mouse"><IconMouse /></span></div>
-          </Frame>
-          <Frame n={4} caption="Quedan marcados con ✓" done={done.devices}>
-            <div className="mk-list"><span><i className="mk-radio on" /> G815 RGB</span><span><i className="mk-radio on" /> PRO X SUPERLIGHT</span></div>
-          </Frame>
-        </Flow>
-        <HowTo steps={[
-          <>Pulsa <strong>Ir a Dispositivos</strong>.</>,
-          <>En la columna <strong>Teclados</strong> pulsa <strong>Detectar</strong> y luego cualquier tecla del teclado que vas a usar. Se marca solo.</>,
-          <>En la columna <strong>Ratones</strong> pulsa <strong>Detectar</strong> y mueve o haz clic con tu ratón.</>,
-          <>También puedes hacer clic directamente en un dispositivo de la lista. Elegir otro sustituye al anterior.</>,
-        ]} />
-        <div className="help-actions">
-          <button id="go-devices" className="btn btn-primary" onClick={() => onGo('devices')}>Ir a Dispositivos <IconArrowRight /></button>
-        </div>
-        <Faq items={[
-          ['¿Por qué solo puedo elegir un teclado y un ratón?', <>Así el mando responde solo a tus dispositivos de juego y no a otros (por ejemplo, el teclado del portátil o un segundo ratón). Si cambias de teclado, elige el nuevo en el mismo perfil o crea otro perfil.</>],
-          ['No sé cuál de la lista es mi teclado o ratón', <>Usa <strong>Detectar</strong>, o simplemente pulsa una tecla o mueve el ratón: el dispositivo que uses enciende su <strong>luz de actividad</strong> verde en la lista.</>],
-          ['Mi teclado inalámbrico aparece con otro nombre', <>Los receptores USB (Logitech Lightspeed/Unifying, Razer HyperSpeed…) a veces aparecen con el nombre del receptor. Detectar lo identifica igualmente.</>],
-          ['Aparece como «Desconectado»', <>El dispositivo elegido no está conectado ahora mismo. Conéctalo, o elige otro de la lista.</>],
-          ['¿Puedo seguir usando el teclado para escribir?', <>Sí. Solo las teclas que asignes al mando se convierten en botones. Si activas «Bloquear teclas mapeadas», esas teclas dejan de llegar al juego como teclado.</>],
-        ]} />
-      </>
-    ),
+              {/* Selector de Juego Base */}
+              <div className="field" style={{ marginTop: 16 }}>
+                <label>Seleccionar o cambiar juego:</label>
+                <div className="wizard-game-tags">
+                  {POPULAR_GAMES.map((game) => {
+                    const isSelected = profile.game === game;
+                    return (
+                      <button
+                        key={game}
+                        type="button"
+                        className={`wizard-game-tag ${isSelected ? 'active' : ''}`}
+                        onClick={() => {
+                          handleSaveProfileName(profileNameDraft || game, game);
+                        }}
+                      >
+                        {isSelected && <IconCheck style={{ width: 13, height: 13 }} />}
+                        {game}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
 
-    profile: (
-      <>
-        <p className="help-lead">
-          El perfil guarda todo tu setup. Para activarlo necesita el mando, el teclado, el ratón y <strong>al menos una tecla asignada</strong> a un botón del mando.
-        </p>
-        <div className="help-profile" style={{ ['--pc' as string]: profile.color }}>
-          <span className="pswitch-dot" />
-          <span><small>Perfil activo</small><strong>{profile.name}</strong></span>
-          <span className="help-profile-keys"><b>{keyCount}</b> {keyCount === 1 ? 'tecla' : 'teclas'}<small>{keyCount - mouseKeys} teclado · {mouseKeys} ratón</small></span>
-          <span className={`chip ${check.complete ? 'ok' : 'warn'}`}>{check.done}/{check.total}</span>
-        </div>
-        <Flow>
-          <Frame n={1} caption="En Mapeo, elige un botón del mando">
-            <div className="mk-pad"><span className="mk-face a sel">A</span><span className="mk-face b">B</span><span className="mk-face x">X</span><span className="mk-face y">Y</span></div>
-          </Frame>
-          <Frame n={2} caption="Pulsa la tecla que quieres usar">
-            <div className="mk-row"><kbd className="mk-key wide press">Espacio</kbd></div>
-          </Frame>
-          <Frame n={3} caption="Queda asignada">
-            <div className="mk-row"><span className="mk-face a">A</span><IconArrowRight /><kbd className="mk-key wide">Espacio</kbd></div>
-          </Frame>
-          <Frame n={4} caption="Perfil listo: pulsa Iniciar" done={done.profile}>
-            <div className="mk-status"><span className="mk-dot ok" /> Listo · {keyCount} teclas</div>
-          </Frame>
-        </Flow>
-        <HowTo steps={[
-          <>Pulsa <strong>Ir a Mapeo</strong>. Verás un mando: haz clic en el botón que quieres configurar (A, gatillo RT, stick…).</>,
-          <>Pulsa en tu teclado o ratón la tecla que hará de ese botón. Repite con los demás botones.</>,
-          <>Los perfiles de ejemplo ya traen teclas asignadas; puedes cambiarlas cuando quieras.</>,
-          <>Con los 4 pasos en verde, pulsa el botón <strong>Iniciar</strong> del panel.</>,
-        ]} />
-        <div className="help-actions">
-          <button id="go-mapping" className="btn btn-primary" onClick={() => onGo('mapping')}>Ir a Mapeo <IconArrowRight /></button>
-          <button id="go-profiles" className="btn" onClick={() => onGo('profiles')}><IconLayers /> Ver perfiles</button>
-        </div>
-        <Faq items={[
-          ['¿Qué es un perfil?', <>Es un setup guardado: mando a emular, teclado, ratón, teclas asignadas, sensibilidad del ratón y tecla de pausa. Puedes tener uno por juego y cambiar entre ellos desde la barra lateral.</>],
-          ['¿Por qué no puedo activar un perfil?', <>Le falta algo obligatorio. La tarjeta del perfil muestra qué falta (Mando, Teclado, Ratón o Mapeo); haz clic en el paso en rojo y te lleva a configurarlo.</>],
-          ['¿Cómo hago que el ratón mueva la cámara?', <>En <strong>Mapeo → Opciones del perfil</strong>, en «Movimiento del ratón controla» elige «Stick der.». Ajusta la sensibilidad en <strong>Curva</strong>.</>],
-          ['¿Cómo pauso el mando sin cerrarlo?', <>Pulsa la tecla de pausa (por defecto <strong>F8</strong>). El mando sigue conectado pero deja de enviar botones, útil para escribir en el chat.</>],
-          ['¿Puedo copiar un perfil a otro PC?', <>Sí: en <strong>Perfiles</strong> usa «Exportar» y en el otro PC «Importar». Tendrás que volver a elegir el teclado y el ratón de ese equipo.</>],
-        ]} />
-      </>
-    ),
-  };
-
-  /* ---------------- Vista compacta cuando todo está listo ---------------- */
-  if (allDone && collapsed && allSoftwareVerified) {
-    return (
-      <section className="card setup setup-done" id="setup-checklist">
-        <div className="setup-done-row">
-          <span className="setup-done-icon"><IconCheck /></span>
-          <div>
-            <strong>Todo listo para jugar</strong>
-            <small>Drivers y software verificados (4/4) · {CONTROLLER_BY_ID[s.controller!].name} · teclado y ratón exclusivos · {keyCount} teclas asignadas</small>
-          </div>
-          <div className="setup-done-steps">{order.map((k) => <i key={k} />)}</div>
-          <button id="setup-expand" className="btn btn-sm btn-ghost" onClick={toggleCollapse}>Ver guía de configuración <IconChevron /></button>
-        </div>
-      </section>
-    );
-  }
-
-  const cur = STEPS[selected];
-
-  return (
-    <section className={`card setup ${allDone && allSoftwareVerified ? 'all-done' : ''}`} id="setup-checklist">
-      <div className="setup-head">
-        <div>
-          <div className="card-title" style={{ marginBottom: 4 }}>
-            <span className="row" style={{ gap: 6 }}><IconWindows style={{ width: 15 }} /> Puesta en marcha de AimCake</span>
-          </div>
-          <h2 className="setup-title">
-            {allDone && allSoftwareVerified
-              ? '¡Todo instalado y listo para jugar!'
-              : `Puesta en marcha: completa ${order.length - doneCount} ${order.length - doneCount === 1 ? 'paso más' : 'pasos más'} para empezar`}
-          </h2>
-        </div>
-        <div className="setup-progress">
-          <svg viewBox="0 0 44 44" className="setup-ring">
-            <circle cx="22" cy="22" r="18" className="track" />
-            <circle cx="22" cy="22" r="18" className="fill" style={{ strokeDasharray: `${(doneCount / order.length) * 113.1} 113.1` }} />
-          </svg>
-          <span><b>{doneCount}</b>/{order.length}</span>
-          {allDone && allSoftwareVerified && (
-            <button id="setup-collapse" className="btn btn-sm btn-ghost" onClick={toggleCollapse}>Ocultar</button>
-          )}
-        </div>
-      </div>
-
-      {/* ============================================================== */}
-      {/* SECCIÓN PERMANENTE: MATRIZ DE CONTROL DE SOFTWARE EN WINDOWS   */}
-      {/* ============================================================== */}
-      <section className="pkg-matrix-card" id="software-matrix-table" style={{ marginBottom: 24 }}>
-        <div className="pkg-matrix-header">
-          <div>
-            <span className="row" style={{ gap: 8 }}>
-              <IconWindows style={{ width: 20, color: 'var(--accent-2)' }} />
-              <strong style={{ fontSize: 16 }}>1. Software Obligatorio en Windows (Descarga e Instalación en vivo)</strong>
-            </span>
-            <small className="faint" style={{ display: 'block', marginTop: 2 }}>
-              Se debe verificar si cada archivo se ha descargado e instalado en Windows para que el Aim Assist a 1000 Hz funcione.
-            </small>
-          </div>
-          <div className="pkg-matrix-counts">
-            <span className="chip sm" style={{ color: downloadedCount === 4 ? 'var(--accent)' : 'var(--text)' }}>
-              📥 <b>{downloadedCount}</b>/4 Descargados
-            </span>
-            <span className={`chip sm ${allSoftwareVerified ? 'ok' : 'warn'}`}>
-              ⚙️ <b>{verifiedCount}</b>/4 Instalados
-            </span>
-          </div>
-        </div>
-
-        <div className="pkg-table-wrap">
-          <table className="pkg-table">
-            <thead>
-              <tr>
-                <th style={{ width: '36%' }}>Software Requerido</th>
-                <th style={{ width: '16%' }}>Archivo</th>
-                <th style={{ width: '16%', textAlign: 'center' }}>¿Descargado?</th>
-                <th style={{ width: '18%', textAlign: 'center' }}>¿Instalado en Windows?</th>
-                <th style={{ width: '14%', textAlign: 'right' }}>Acción</th>
-              </tr>
-            </thead>
-            <tbody>
-              {SOFTWARE_LIST.map((pkg) => {
-                const state = pkgs ? pkgs[pkg.id] : undefined;
-                const isD = !!state?.downloaded;
-                const isV = !!state?.verified;
-
-                return (
-                  <tr key={pkg.id} className={`pkg-row ${isV ? 'is-verified' : isD ? 'is-downloaded' : 'is-pending'}`}>
-                    <td>
-                      <div className="row" style={{ gap: 8 }}>
-                        <span className={`pkg-status-dot ${isV ? 'ok' : isD ? 'info' : 'bad'}`} />
-                        <div>
-                          <strong className="pkg-row-name">{pkg.name}</strong>
-                          <small className="pkg-row-purpose">{pkg.purpose}</small>
-                        </div>
-                      </div>
-                    </td>
-                    <td>
-                      <code className="pkg-code">{pkg.fileName}</code>
-                      <small className="faint" style={{ display: 'block', fontSize: 10.5 }}>{pkg.fileSize}</small>
-                    </td>
-                    <td style={{ textAlign: 'center' }}>
-                      {isD ? (
-                        <span className="badge-status badge-ok">
-                          <IconCheck style={{ width: 12, height: 12 }} /> SÍ (Descargado)
-                        </span>
-                      ) : (
-                        <span className="badge-status badge-bad">
-                          <IconX style={{ width: 12, height: 12 }} /> NO (Pendiente)
-                        </span>
-                      )}
-                    </td>
-                    <td style={{ textAlign: 'center' }}>
-                      {isV ? (
-                        <span className="badge-status badge-ok">
-                          <IconCheck style={{ width: 12, height: 12 }} /> SÍ (Instalado)
-                        </span>
-                      ) : (
-                        <span className="badge-status badge-warn">
-                          <IconAlert style={{ width: 12, height: 12 }} /> NO (Falta instalar)
-                        </span>
-                      )}
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      <div className="row" style={{ gap: 6, justifyContent: 'flex-end' }}>
-                        <a
-                          href={pkg.downloadUrl}
-                          download={pkg.fileName}
-                          className={`btn btn-sm ${isD ? 'btn-ghost' : 'btn-primary'}`}
-                          onClick={() => handleDownloadPackage(pkg)}
-                          title={`Descargar ${pkg.fileName}`}
-                        >
-                          <IconDownload /> {isD ? 'Re-descargar' : 'Descargar'}
-                        </a>
-                        <button
-                          type="button"
-                          className={`btn btn-sm ${isV ? 'btn-ghost' : ''}`}
-                          onClick={() => handleTogglePackage(pkg.id)}
-                          title={isV ? 'Desmarcar' : 'Marcar como instalado en Windows'}
-                        >
-                          {isV ? <IconCheck style={{ color: 'var(--accent)' }} /> : 'Marcar'}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="pkg-matrix-foot">
-          <button
-            id="btn-dl-all-pkgs"
-            type="button"
-            className="btn btn-primary"
-            onClick={downloadAllPackages}
-          >
-            <IconDownload /> Descargar los 4 instaladores (.exe)
-          </button>
-          <button
-            id="btn-auto-install"
-            type="button"
-            className="btn"
-            onClick={installAuto}
-            disabled={installing}
-          >
-            {installing ? <><span className="spinner" /> Instalando automáticamente…</> : <><IconSpark /> Instalar Drivers en 1 Clic</>}
-          </button>
-          <button
-            id="btn-auth-browser-banner"
-            type="button"
-            className="btn"
-            onClick={handleAuthorizeBrowser}
-            disabled={authorizing}
-          >
-            {authorizing ? <><span className="spinner" /> Verificando…</> : <><IconRadar /> Pedir Autorización al Navegador y Verificar</>}
-          </button>
-          <button
-            id="btn-recheck-software"
-            type="button"
-            className="btn btn-ghost"
-            onClick={recheck}
-            disabled={checking}
-          >
-            {checking ? <span className="spinner" /> : <IconRefresh />} Comprobar
-          </button>
-        </div>
-      </section>
-
-      {/* ============================================================== */}
-      {/* PASOS DE CONFIGURACIÓN DEL CHECKLIST                           */}
-      {/* ============================================================== */}
-      <div className="setup-body">
-        <ol className="setup-steps">
-          {order.map((id) => {
-            const st = STEPS[id];
-            const ok = done[id];
-            return (
-              <li key={id}>
+              <div className="row-between" style={{ marginTop: 20, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
+                <span className="faint" style={{ fontSize: 13 }}>
+                  ¿Quieres gestionar múltiples perfiles independientes?
+                </span>
                 <button
-                  id={`setup-step-${id}`}
-                  className={`setup-step ${ok ? 'ok' : 'pending'} ${selected === id ? 'sel' : ''}`}
-                  onClick={() => pick(id)}
-                  aria-current={selected === id}
+                  type="button"
+                  className="btn btn-sm btn-ghost"
+                  onClick={() => onGo('profiles')}
                 >
-                  <span className="setup-num">{ok ? <IconCheck /> : st.n}</span>
-                  <span className="setup-step-text">
-                    <strong>{st.title}</strong>
-                    <small>{ok ? st.okText : st.pendingText}</small>
-                    {id === 'driver' && (
-                      <span className="setup-pkg-mini-dots">
-                        {SOFTWARE_LIST.map((pkg) => {
-                          const isV = !!pkgs?.[pkg.id]?.verified;
-                          const isD = !!pkgs?.[pkg.id]?.downloaded;
-                          return (
-                            <span
-                              key={pkg.id}
-                              className={`mini-pkg-tag ${isV ? 'v-ok' : isD ? 'd-ok' : 'none'}`}
-                              title={`${pkg.name}: ${isV ? 'Instalado' : isD ? 'Descargado' : 'Pendiente'}`}
-                            >
-                              <i />
-                              {pkg.shortLabel}
-                              {isV ? ' ✓' : isD ? ' 📥' : ' ✕'}
-                            </span>
-                          );
-                        })}
-                      </span>
-                    )}
-                  </span>
-                  <span className="setup-step-icon">{st.icon}</span>
+                  <IconLayers /> Administrador de Perfiles
                 </button>
-              </li>
-            );
-          })}
-        </ol>
+              </div>
+            </div>
 
-        <div className="setup-help" key={selected}>
-          <div className="setup-help-head">
-            <span className={`setup-num big ${done[selected] ? 'ok' : ''}`}>{done[selected] ? <IconCheck /> : cur.n}</span>
-            <div>
-              <small>Paso {cur.n} de {order.length} · {done[selected] ? 'Completado y verificado' : 'Pendiente de instalación'}</small>
-              <h3>{cur.title}</h3>
+            <div className="wizard-footer-actions">
+              <button type="button" className="btn btn-ghost" onClick={() => setActiveStep(1)}>
+                Volver a Drivers
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => setActiveStep(3)}
+                style={{ marginLeft: 'auto' }}
+              >
+                Siguiente: Dispositivos Únicos <IconArrowRight />
+              </button>
             </div>
           </div>
-          {help[selected]}
-        </div>
+        )}
+
+        {/* ======================================================== */}
+        {/* PASO 3: DISPOSITIVOS ÚNICOS (MANDO + MOUSE + TECLADO)    */}
+        {/* ======================================================== */}
+        {activeStep === 3 && (
+          <div className="wizard-pane animate-fade">
+            <div className="wizard-pane-header">
+              <div className="wizard-pane-icon"><IconGamepad /></div>
+              <div>
+                <h4>Paso 3: Selecciona Mando, Mouse y Teclado Únicos</h4>
+                <p className="faint">
+                  AimCake aísla exactamente 1 teclado y 1 ratón para este perfil, los cuales emulan el mando seleccionado con respuesta de 1000 Hz.
+                </p>
+              </div>
+              <span className={`chip ${check.keyboard && check.mouse && check.controller ? 'ok' : 'warn'}`} style={{ marginLeft: 'auto' }}>
+                <span className="dot" />
+                {check.keyboard && check.mouse && check.controller ? 'Dispositivos Asignados' : 'Configuración Incompleta'}
+              </span>
+            </div>
+
+            <div className="grid grid-3" style={{ gap: 16 }}>
+              {/* 1. Mando a Emular */}
+              <div className="wizard-device-box">
+                <div className="wizard-device-head">
+                  <IconGamepad style={{ width: 18, height: 18, color: 'var(--accent)' }} />
+                  <strong>1. Mando a Emular</strong>
+                </div>
+                <p className="faint" style={{ fontSize: 12.5 }}>Tipo de controlador virtual inyectado en Windows:</p>
+                <div className="stack" style={{ gap: 8 }}>
+                  <button
+                    type="button"
+                    className={`wizard-opt-btn ${s.controller === 'X360' ? 'selected' : ''}`}
+                    onClick={() => onSetController('X360')}
+                  >
+                    <div className="row" style={{ gap: 8 }}>
+                      <span className="wizard-opt-radio" />
+                      <strong>Xbox 360 Controller</strong>
+                    </div>
+                    <span className="chip xs ok">Recomendado</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className={`wizard-opt-btn ${s.controller === 'DS4' ? 'selected' : ''}`}
+                    onClick={() => onSetController('DS4')}
+                  >
+                    <div className="row" style={{ gap: 8 }}>
+                      <span className="wizard-opt-radio" />
+                      <strong>DualShock 4 (PlayStation)</strong>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* 2. Ratón Exclusivo */}
+              <div className="wizard-device-box">
+                <div className="wizard-device-head">
+                  <IconMouse style={{ width: 18, height: 18, color: 'var(--accent-2)' }} />
+                  <strong>2. Ratón Exclusivo</strong>
+                </div>
+                <p className="faint" style={{ fontSize: 12.5 }}>Ratón que controlará el Stick Derecho (Aim Assist):</p>
+                <select
+                  className="input"
+                  value={s.mice[0] ?? ''}
+                  onChange={(e) => handleDeviceChange('mouse', e.target.value)}
+                  style={{ width: '100%' }}
+                >
+                  <option value="">-- Seleccionar Ratón --</option>
+                  {devices.filter((d) => d.kind === 'mouse').map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name} {d.connection ? `(${d.connection})` : ''}
+                    </option>
+                  ))}
+                </select>
+                <div className="wizard-device-status">
+                  {ms ? (
+                    <span className="row" style={{ gap: 6, color: 'var(--accent)' }}>
+                      <IconCheck style={{ width: 14 }} /> {ms.name}
+                    </span>
+                  ) : (
+                    <span className="faint" style={{ color: 'var(--warn)' }}>⚠ Selecciona tu ratón de juego</span>
+                  )}
+                </div>
+              </div>
+
+              {/* 3. Teclado Exclusivo */}
+              <div className="wizard-device-box">
+                <div className="wizard-device-head">
+                  <IconKeyboard style={{ width: 18, height: 18, color: 'var(--accent)' }} />
+                  <strong>3. Teclado Exclusivo</strong>
+                </div>
+                <p className="faint" style={{ fontSize: 12.5 }}>Teclado que controlará los botones y movimiento:</p>
+                <select
+                  className="input"
+                  value={s.keyboards[0] ?? ''}
+                  onChange={(e) => handleDeviceChange('keyboard', e.target.value)}
+                  style={{ width: '100%' }}
+                >
+                  <option value="">-- Seleccionar Teclado --</option>
+                  {devices.filter((d) => d.kind === 'keyboard').map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name} {d.connection ? `(${d.connection})` : ''}
+                    </option>
+                  ))}
+                </select>
+                <div className="wizard-device-status">
+                  {kb ? (
+                    <span className="row" style={{ gap: 6, color: 'var(--accent)' }}>
+                      <IconCheck style={{ width: 14 }} /> {kb.name}
+                    </span>
+                  ) : (
+                    <span className="faint" style={{ color: 'var(--warn)' }}>⚠ Selecciona tu teclado</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="wizard-footer-actions">
+              <button type="button" className="btn btn-ghost" onClick={() => setActiveStep(2)}>
+                Volver a Perfil
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => setActiveStep(4)}
+                style={{ marginLeft: 'auto' }}
+              >
+                Siguiente: Mapeo de Controles <IconArrowRight />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ======================================================== */}
+        {/* PASO 4: MAPEO DE CONTROLES                               */}
+        {/* ======================================================== */}
+        {activeStep === 4 && (
+          <div className="wizard-pane animate-fade">
+            <div className="wizard-pane-header">
+              <div className="wizard-pane-icon"><IconKeyboard /></div>
+              <div>
+                <h4>Paso 4: Mapeo de Teclas y Botones del Mando</h4>
+                <p className="faint">
+                  Revisa y asigna cada tecla de tu teclado y clicks del ratón a los botones, sticks y gatillos del mando emulado.
+                </p>
+              </div>
+              <span className={`chip ${mappedCount >= 4 ? 'ok' : 'warn'}`} style={{ marginLeft: 'auto' }}>
+                <span className="dot" />
+                {mappedCount} acciones asignadas
+              </span>
+            </div>
+
+            <div className="wizard-pane-card">
+              <div className="grid grid-3" style={{ gap: 14 }}>
+                <div className="wizard-summary-tile">
+                  <span className="faint" style={{ fontSize: 12 }}>Movimiento (Stick Izquierdo)</span>
+                  <strong>WASD Tradicional</strong>
+                  <small className="faint">W: Arriba, S: Abajo, A: Izq, D: Der</small>
+                </div>
+                <div className="wizard-summary-tile">
+                  <span className="faint" style={{ fontSize: 12 }}>Combate (Gatillos)</span>
+                  <strong>LMB / RMB</strong>
+                  <small className="faint">Click Izq: Gatillo R2 (Disparo) · Click Der: L2 (Apuntar)</small>
+                </div>
+                <div className="wizard-summary-tile">
+                  <span className="faint" style={{ fontSize: 12 }}>Acciones de Mouse</span>
+                  <strong>{mouseBindingsCount} asignadas</strong>
+                  <small className="faint">Clicks y rueda traducidos al mando</small>
+                </div>
+              </div>
+
+              <div className="row-between" style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
+                <p className="faint" style={{ margin: 0, fontSize: 13 }}>
+                  Personaliza cada botón con detección en vivo, doble click y combinaciones.
+                </p>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => onGo('mapping')}
+                >
+                  <IconKeyboard /> Abrir Mapeador Detallado
+                </button>
+              </div>
+            </div>
+
+            <div className="wizard-footer-actions">
+              <button type="button" className="btn btn-ghost" onClick={() => setActiveStep(3)}>
+                Volver a Dispositivos
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => setActiveStep(5)}
+                style={{ marginLeft: 'auto' }}
+              >
+                Siguiente: Curva y Calibración <IconArrowRight />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ======================================================== */}
+        {/* PASO 5: CURVA Y DETALLES DE SENSIBILIDAD                 */}
+        {/* ======================================================== */}
+        {activeStep === 5 && (
+          <div className="wizard-pane animate-fade">
+            <div className="wizard-pane-header">
+              <div className="wizard-pane-icon"><IconCurve /></div>
+              <div>
+                <h4>Paso 5: Curva Bézier y Cinemática de Aim Assist</h4>
+                <p className="faint">
+                  Ajusta la curva de respuesta y zona muerta para que el movimiento del mouse mantenga la burbuja de asistencia rotacional activa.
+                </p>
+              </div>
+              <span className="chip ok" style={{ marginLeft: 'auto' }}>
+                <span className="dot" /> Curva Calibrada
+              </span>
+            </div>
+
+            <div className="wizard-pane-card">
+              <div className="grid grid-3" style={{ gap: 14 }}>
+                <div className="wizard-summary-tile">
+                  <span className="faint" style={{ fontSize: 12 }}>Sensibilidad General</span>
+                  <strong>{s.config.sensitivity}x</strong>
+                  <small className="faint">Multiplicador cinemático a 1000 Hz</small>
+                </div>
+                <div className="wizard-summary-tile">
+                  <span className="faint" style={{ fontSize: 12 }}>Zona Muerta Interna</span>
+                  <strong>{Math.round((s.config.deadzoneInner || 0.08) * 100)}%</strong>
+                  <small className="faint">Elimina deriva mínima del stick</small>
+                </div>
+                <div className="wizard-summary-tile">
+                  <span className="faint" style={{ fontSize: 12 }}>Exponente de Curva</span>
+                  <strong>{s.config.exponent} (Bézier suave)</strong>
+                  <small className="faint">Respuesta de Aim Assist rotacional</small>
+                </div>
+              </div>
+
+              <div className="row-between" style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
+                <p className="faint" style={{ margin: 0, fontSize: 13 }}>
+                  Ajusta visualmente la curva exponencial, suavizado y aceleración de puntero.
+                </p>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => onGo('curve')}
+                >
+                  <IconCurve /> Ajustar Curva y Sensibilidad
+                </button>
+              </div>
+            </div>
+
+            <div className="wizard-footer-actions">
+              <button type="button" className="btn btn-ghost" onClick={() => setActiveStep(4)}>
+                Volver a Mapeo
+              </button>
+              <span className="row" style={{ marginLeft: 'auto', gap: 10, color: 'var(--accent)', fontWeight: 600 }}>
+                <IconCheck /> ¡Perfil «{profile.name}» listo para emular!
+              </span>
+            </div>
+          </div>
+        )}
       </div>
-    </section>
+    </div>
   );
 }

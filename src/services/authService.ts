@@ -214,6 +214,13 @@ class SupabaseAuth implements AuthApi {
       data: { phone_confirmed: true, phone_bonus_granted: true }
     });
     fail(error);
+
+    // Otorgar días de bonificación directamente en la base de datos Supabase
+    try {
+      await this.sb.rpc('claim_phone_bonus');
+    } catch {
+      // Ignorar si el RPC aún no fue ejecutado en el backend
+    }
   }
 
   async resendConfirmation(email: string) {
