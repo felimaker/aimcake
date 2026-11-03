@@ -162,33 +162,100 @@ export default function SetupChecklist({ status, profile, devices, onRefreshStat
                 )}
               </div>
 
-              {r.num === 1 && !isInstalled && (
-                <div className="check-install">
-                  <div className="faint" style={{ fontSize: 12.5 }}>
-                    aimcake_setup.exe · ~6.3 MB · Windows 10/11 (64-bit)
+              {r.num === 1 && (
+                <div className="check-install" style={{ marginTop: 12 }}>
+                  <div className="row-between" style={{ alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+                    <div className="faint" style={{ fontSize: 12.5 }}>
+                      Instalador oficial para Windows 10 y 11 (64-bit) · Mando Virtual 1000 Hz
+                    </div>
+                    <span className={`chip xs ${isInstalled ? 'ok' : 'warn'}`}>
+                      {isInstalled ? '✅ Instalado y Listo' : '⚠️ Pendiente de instalar'}
+                    </span>
                   </div>
-                  <div className="row" style={{ gap: 10, flexWrap: 'wrap' }}>
-                    <a
-                      id="panel-download-exe"
-                      href="/downloads/aimcake_setup.exe"
-                      download="aimcake_setup.exe"
-                      className="btn btn-primary"
-                      onClick={() => {
-                        bridge.recordPackageDownload('vigembus');
-                        onRefreshStatus();
-                        toast('success', 'Descargando aimcake_setup.exe…');
-                      }}
-                    >
-                      <IconDownload /> Descargar aimcake_setup.exe
-                    </a>
-                    <button type="button" className="btn" onClick={recheck} disabled={checking}>
-                      {checking ? <span className="spinner" /> : <IconRefresh />} Ya lo instalé · Verificar
-                    </button>
+
+                  <div className="row" style={{ gap: 10, flexWrap: 'wrap', marginTop: 10 }}>
+                    {!isInstalled ? (
+                      <>
+                        <a
+                          id="panel-download-exe"
+                          href="/downloads/aimcake_setup.exe"
+                          download="aimcake_setup.exe"
+                          className="btn btn-primary"
+                          onClick={() => {
+                            bridge.recordPackageDownload('vigembus');
+                            onRefreshStatus();
+                            toast('success', 'Descargando instalador de AimCake…');
+                          }}
+                        >
+                          <IconDownload /> 1. Descargar aimcake_setup.exe
+                        </a>
+
+                        <button
+                          type="button"
+                          className="btn btn-secondary"
+                          onClick={recheck}
+                          disabled={checking}
+                          title="Haz clic aquí después de ejecutar el instalador en tu equipo"
+                        >
+                          {checking ? <span className="spinner" /> : <IconRefresh />} 2. Ya lo instalé · Verificar
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <a
+                          id="panel-open-app"
+                          href="aimcake://launch"
+                          className="btn btn-primary"
+                          title="Abre la app de AimCake instalada en tu equipo"
+                        >
+                          <IconGamepad /> Abrir AimCake en Windows
+                        </a>
+
+                        <button
+                          type="button"
+                          className="btn btn-ghost"
+                          onClick={recheck}
+                          disabled={checking}
+                        >
+                          {checking ? <span className="spinner" /> : <IconRefresh />} Volver a comprobar
+                        </button>
+
+                        <a
+                          href="/downloads/aimcake_setup.exe"
+                          download="aimcake_setup.exe"
+                          className="btn btn-sm btn-ghost faint"
+                          title="Volver a descargar el instalador si necesitas reinstalarlo"
+                        >
+                          <IconDownload /> Descargar de nuevo
+                        </a>
+                      </>
+                    )}
+
                     {isTauri && (
                       <button type="button" className="btn btn-ghost" onClick={installAuto} disabled={installing}>
-                        {installing ? <span className="spinner" /> : <IconCpu />} Instalar automáticamente
+                        {installing ? <span className="spinner" /> : <IconCpu />} Instalar drivers en 1 clic
                       </button>
                     )}
+                  </div>
+
+                  {/* Pasos súper sencillos para el usuario */}
+                  <div style={{
+                    marginTop: 14,
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: 8,
+                    fontSize: 12,
+                    color: 'var(--text-dim)'
+                  }}>
+                    <span className="chip sm" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                      <strong>Paso 1:</strong> Descarga el archivo
+                    </span>
+                    <span className="chip sm" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                      <strong>Paso 2:</strong> Ábrelo y dale a Instalar (15 seg)
+                    </span>
+                    <span className="chip sm ok" style={{ background: 'rgba(34,197,94,0.1)' }}>
+                      <strong>Paso 3:</strong> ¡Listo! Abre el icono del reloj y pulsa Encender
+                    </span>
                   </div>
                 </div>
               )}

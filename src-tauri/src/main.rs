@@ -254,6 +254,14 @@ fn stop_emulation(state: State<'_, AppState>) -> Result<String, String> {
     Ok("Emulación detenida".into())
 }
 
+#[tauri::command]
+fn hide_window(app: AppHandle) -> Result<(), String> {
+    if let Some(w) = app.get_webview_window("main") {
+        let _ = w.hide();
+    }
+    Ok(())
+}
+
 fn main() {
     let app = tauri::Builder::default()
         // Debe ser el primer plugin: si ya hay una instancia abierta, le reenvía
@@ -358,13 +366,24 @@ fn main() {
             load_profiles,
             save_profiles,
             start_emulation,
-            stop_emulation
+            stop_emulation,
+            hide_window
         ])
         .build(tauri::generate_context!())
         .expect("Error al inicializar la aplicación");
 
     app.run(|handle, event| {
         match event {
+            RunEvent::WindowEvent {
+                label,
+                event: tauri::WindowEvent::CloseRequested { api, .. },
+                ..
+            } if label == "main" => {
+                api.prevent_close();
+                if let Some(w) = handle.get_webview_window("main") {
+                    let _ = w.hide();
+                }
+            }
             RunEvent::Exit => {
                 handle.state::<AppState>().shutdown();
             }

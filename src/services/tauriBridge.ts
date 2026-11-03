@@ -512,4 +512,8 @@ export const bridge = {
     }
     window.open(url, '_blank', 'noopener');
   },
+
+  async hideWindow(): Promise<void> {
+    if (isTauri) return invoke('hide_window');
+  },
 };

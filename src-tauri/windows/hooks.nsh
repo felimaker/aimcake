@@ -30,4 +30,15 @@
     DetailPrint "El driver ViGEmBus ya esta instalado."
 
   xcb_vigem_done:
+    ; Registro del protocolo de enlace web aimcake://
+    DetailPrint "Registrando protocolo de enlace aimcake://..."
+    WriteRegStr HKCR "aimcake" "" "URL:AimCake Protocol"
+    WriteRegStr HKCR "aimcake" "URL Protocol" ""
+    WriteRegStr HKCR "aimcake\DefaultIcon" "" "$INSTDIR\AimCake.exe,0"
+    WriteRegStr HKCR "aimcake\shell\open\command" "" '"$INSTDIR\AimCake.exe" "%1"'
+
+    WriteRegStr HKCR "xcb" "" "URL:AimCake XCB Protocol"
+    WriteRegStr HKCR "xcb" "URL Protocol" ""
+    WriteRegStr HKCR "xcb\DefaultIcon" "" "$INSTDIR\AimCake.exe,0"
+    WriteRegStr HKCR "xcb\shell\open\command" "" '"$INSTDIR\AimCake.exe" "%1"'
 !macroend

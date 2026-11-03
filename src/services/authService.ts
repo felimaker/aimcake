@@ -294,9 +294,9 @@ class SupabaseAuth implements AuthApi {
       fail(error);
       return true;
     }
-    const access = hash.get('access_token');
-    const refresh = hash.get('refresh_token');
-    if (access && refresh) {
+    const access = hash.get('access_token') ?? q.get('access_token') ?? q.get('token');
+    const refresh = hash.get('refresh_token') ?? q.get('refresh_token') ?? '';
+    if (access) {
       const { error } = await this.sb.auth.setSession({ access_token: access, refresh_token: refresh });
       fail(error);
       return true;
@@ -435,14 +435,23 @@ class DemoAuth implements AuthApi {
   async updateName(name: string) { await this.wait(); this.mutate((u) => { u.name = name; }); }
   async resetPassword() { await this.wait(); }
   async signOut() { await licenseSignOut(); this.save({ user: null, password: null }); }
-  async handleCallback() { return false; }
+  async handleCallback(raw: string) {
+    try {
+      const u = new URL(raw);
+      const email = u.searchParams.get('email') || 'jugador.demo@gmail.com';
+      await this.signIn(email, 'AimCake123!');
+      return true;
+    } catch {
+      return false;
+    }
+  }
 }
 
 export const auth: AuthApi = backendConfigured && supabase ? new SupabaseAuth() : new DemoAuth();
 export { backendConfigured };
 
 /**
- * Escucha los deep links `xcb://auth/callback` (solo escritorio). Incluye la URL
+ * Escucha los deep links `aimcake://` y `xcb://` (solo escritorio). Incluye la URL
  * con la que se abrió la app si fue lanzada por el propio enlace.
  */
 export async function listenAuthDeepLinks(onResult: (ok: boolean, error?: string) => void): Promise<() => void> {
@@ -450,7 +459,7 @@ export async function listenAuthDeepLinks(onResult: (ok: boolean, error?: string
   const { onOpenUrl, getCurrent } = await import('@tauri-apps/plugin-deep-link');
   const handle = async (urls: string[] | null) => {
     for (const url of urls ?? []) {
-      if (!url.startsWith('xcb://')) continue;
+      if (!url.startsWith('xcb://') && !url.startsWith('aimcake://')) continue;
       try {
         if (await auth.handleCallback(url)) onResult(true);
       } catch (e) {

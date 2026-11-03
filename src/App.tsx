@@ -10,6 +10,7 @@ import SuperAdminView from './components/SuperAdminView';
 import LandingPage from './components/LandingPage';
 import DesktopRequiredBanner from './components/DesktopRequiredBanner';
 import LicenseStatus, { formatRemaining } from './components/LicenseStatus';
+import DesktopMonitorView from './components/DesktopMonitorView';
 import {
   IconAlert, IconBolt, IconCheck, IconChevron, IconChip, IconCrown, IconCurve, IconDashboard, IconDevices, IconDownload, IconEdit,
   IconGamepad, IconKeyboard, IconLayers, IconMouse, IconPause, IconPlay, IconPower, IconShield, IconSpark, IconUser,
@@ -24,7 +25,7 @@ import { bridge, isTauri } from './services/tauriBridge';
 import type { EngineSettings, EngineStatus, GamepadSnapshot, InputDevice, Profile, ProfileStore } from './types';
 import { EMPTY_SNAPSHOT } from './types';
 
-type View = 'landing' | 'dashboard' | 'profiles' | 'mapping' | 'curve' | 'devices' | 'license' | 'account' | 'superadmin';
+type View = 'landing' | 'monitor' | 'dashboard' | 'profiles' | 'mapping' | 'curve' | 'devices' | 'license' | 'account' | 'superadmin';
 
 interface Toast { id: number; kind: 'error' | 'success' | 'info'; text: string }
 
@@ -84,7 +85,7 @@ function ProfileSwitcher({ store, onActivate, onManage }: { store: ProfileStore;
 }
 
 export default function App() {
-  const [view, setView] = useState<View>('landing');
+  const [view, setView] = useState<View>(() => (isTauri ? 'monitor' : 'landing'));
   const [isDesktop, setIsDesktop] = useState(() => (typeof window !== 'undefined' ? window.innerWidth >= 1024 : true));
   const [bypassDesktopReq, setBypassDesktopReq] = useState(false);
   const [authNotice, setAuthNotice] = useState<string | undefined>();
@@ -268,7 +269,16 @@ export default function App() {
 
   const togglePause = () => bridge.setPaused(!snapshot.paused);
 
+  const installDrivers = useCallback(async () => {
+    const res = await bridge.installDriver();
+    await refreshStatus();
+    if (res.rebootRequired) {
+      toast('info', 'Driver instalado. Se recomienda reiniciar el equipo para completar.');
+    }
+  }, [refreshStatus, toast]);
+
   const NAV: { id: View; label: string; icon: JSX.Element; badge?: string }[] = [
+    { id: 'monitor', label: 'Monitor HUD', icon: <IconPower />, badge: '1000Hz' },
     { id: 'dashboard', label: 'Panel', icon: <IconDashboard /> },
     { id: 'profiles', label: 'Perfiles', icon: <IconLayers />, badge: activeCheck && !activeCheck.complete ? '!' : undefined },
     { id: 'devices', label: 'Dispositivos', icon: <IconDevices /> },
@@ -281,6 +291,7 @@ export default function App() {
   ];
 
   const TITLES: Record<View, [string, string]> = {
+    monitor: ['AimCake Monitor · Windows HUD', 'Interruptor principal de Aim Assist, telemetría a 1000 Hz y bandeja del reloj'],
     landing: ['AimCake · Web Oficial', 'Landing page comercial, características, telemetría y descargas'],
     dashboard: ['Panel de Control · AimCake', 'Activa tu asistencia Aim Assist a 1000 Hz y domina cada partida'],
     profiles: ['Perfiles', 'Cada perfil une protocolo, teclado, ratón y mapeo: los cuatro son necesarios para activarlo'],
@@ -401,24 +412,26 @@ export default function App() {
       </aside>
 
       <main className="main">
-        <header className="page-head">
-          <div>
-            <h1 className="page-title">{TITLES[view][0]}</h1>
-            <p className="page-sub">{TITLES[view][1]}</p>
-          </div>
-          {view !== 'dashboard' && view !== 'account' && (
-            <div className="row">
-              {view !== 'profiles' && view !== 'license' && (
-                <span className={`chip ${editsOther ? 'warn' : ''}`} style={{ ['--pc' as string]: editProfile.color }} title={editsOther ? 'Estás editando un perfil que no es el activo' : undefined}>
-                  <span className="dot" style={{ background: editProfile.color }} />{editsOther ? 'Editando: ' : ''}{editProfile.name}
-                </span>
-              )}
-              <button id="header-toggle" className={`btn ${running ? 'btn-danger' : 'btn-primary'}`} onClick={toggle} disabled={busy}>
-                {busy ? <span className="spinner" /> : <IconPower />}{running ? 'Detener' : 'Iniciar'}
-              </button>
+        {view !== 'monitor' && (
+          <header className="page-head">
+            <div>
+              <h1 className="page-title">{TITLES[view][0]}</h1>
+              <p className="page-sub">{TITLES[view][1]}</p>
             </div>
-          )}
-        </header>
+            {view !== 'dashboard' && view !== 'account' && (
+              <div className="row">
+                {view !== 'profiles' && view !== 'license' && (
+                  <span className={`chip ${editsOther ? 'warn' : ''}`} style={{ ['--pc' as string]: editProfile.color }} title={editsOther ? 'Estás editando un perfil que no es el activo' : undefined}>
+                    <span className="dot" style={{ background: editProfile.color }} />{editsOther ? 'Editando: ' : ''}{editProfile.name}
+                  </span>
+                )}
+                <button id="header-toggle" className={`btn ${running ? 'btn-danger' : 'btn-primary'}`} onClick={toggle} disabled={busy}>
+                  {busy ? <span className="spinner" /> : <IconPower />}{running ? 'Detener' : 'Iniciar'}
+                </button>
+              </div>
+            )}
+          </header>
+        )}
 
         {isEditView && (editsOther || !editCheck.complete) && (
           <div className={`edit-banner ${editCheck.complete ? '' : 'warn'}`} style={{ ['--pc' as string]: editProfile.color }}>
@@ -467,6 +480,27 @@ export default function App() {
             />
           ) : (
             <>
+              {view === 'monitor' && (
+                <DesktopMonitorView
+                  status={status}
+                  running={running}
+                  busy={busy}
+                  snapshot={snapshot}
+                  profile={activeProfile}
+                  devices={devices}
+                  auth={auth}
+                  license={license}
+                  hwid={hwid}
+                  onToggle={toggle}
+                  onTogglePause={togglePause}
+                  onRefreshStatus={refreshStatus}
+                  onInstallDrivers={installDrivers}
+                  onOpenWeb={() => bridge.openExternal(typeof window !== 'undefined' ? `${window.location.origin}/` : 'http://localhost:1420/')}
+                  onSwitchToFullEditor={() => setView('dashboard')}
+                  toast={toast}
+                />
+              )}
+
               {view === 'dashboard' && (
             <div className="stack" style={{ gap: 18 }}>
               <SetupChecklist

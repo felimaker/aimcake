@@ -97,7 +97,7 @@ export default function LandingPage({ user, onGoApp, onGoLogin, onGoRegister, on
                 className="btn btn-primary land-dl-pill"
                 onClick={handleDownloadClick}
               >
-                <IconDownload /> Descargar aimcake_drivers.exe
+                <IconDownload /> Descargar aimcake_setup.exe
               </button>
             </>
           )}

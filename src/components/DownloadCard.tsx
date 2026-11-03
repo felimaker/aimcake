@@ -9,7 +9,7 @@ interface Props {
   onRequireLogin?: () => void;
 }
 
-const SHA256_HASH = '89220A78D5B0F7517A7BC62FEEC3D097E9C886B8616147481B5E87D0014C6A';
+const SHA256_HASH = '89220A7865076B342892F98865F3499FB7C4CFD673159E89D352C360FD014C6A';
 
 export default function DownloadCard({ userEmail, compact, onRequireLogin }: Props) {
   const [copiedHash, setCopiedHash] = useState(false);
@@ -48,7 +48,7 @@ export default function DownloadCard({ userEmail, compact, onRequireLogin }: Pro
 
           <div className="dl-actions">
             {userEmail ? (
-              <>
+              <div className="stack" style={{ gap: 10 }}>
                 <a
                   id="download-app-exe"
                   href="/downloads/aimcake_setup.exe"
@@ -61,7 +61,19 @@ export default function DownloadCard({ userEmail, compact, onRequireLogin }: Pro
                     <small>Instalador oficial Windows 64-bit · ~6.3 MB</small>
                   </span>
                 </a>
-              </>
+
+                <div className="row" style={{ gap: 10, flexWrap: 'wrap' }}>
+                  <a
+                    id="launch-desktop-app"
+                    href="aimcake://launch"
+                    className="btn btn-sm btn-secondary"
+                    title="Si ya tienes AimCake instalado en este PC, ábrelo directamente"
+                  >
+                    <IconWindows />
+                    <span>¿Ya lo instalaste? Abrir Monitor en el Reloj</span>
+                  </a>
+                </div>
+              </div>
             ) : (
               <div className="stack" style={{ gap: 8 }}>
                 <button
@@ -89,25 +101,28 @@ export default function DownloadCard({ userEmail, compact, onRequireLogin }: Pro
             <span className="dl-step-num">1</span>
             <div>
               <strong>Descarga el instalador</strong>
-              <small>Guarda <code>aimcake_setup.exe</code> en tu equipo.</small>
+              <small>Guarda <code>aimcake_setup.exe</code> en tu equipo (un solo archivo).</small>
             </div>
           </div>
           <div className="dl-step">
             <span className="dl-step-num">2</span>
             <div>
-              <strong>Ejecútalo en 30 segundos</strong>
-              <small>Instala los drivers de AimCake con 1 clic y activa el soporte de Aim Assist.</small>
+              <strong>Sigue el Wizard (15 seg)</strong>
+              <small>Instala silenciosamente la app y el driver de mando certificado WHQL.</small>
             </div>
           </div>
           <div className="dl-step">
             <span className="dl-step-num">3</span>
             <div>
-              <strong>Inicia sesión y juega</strong>
-              <small>
-                {userEmail
-                  ? <>Entra con <strong>{userEmail}</strong> para sincronizar tu licencia activa.</>
-                  : 'Entra con Google o correo para activar tus 3 días de prueba gratis.'}
-              </small>
+              <strong>Conexión con 1 clic</strong>
+              <small>Inicia sesión con tu navegador o cuenta para activar tus 3 días de prueba.</small>
+            </div>
+          </div>
+          <div className="dl-step">
+            <span className="dl-step-num">4</span>
+            <div>
+              <strong>Control desde el Reloj</strong>
+              <small>La app se aloja junto al reloj de Windows. Pulsa ENCENDER y ¡a jugar!</small>
             </div>
           </div>
         </div>

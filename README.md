@@ -36,7 +36,7 @@ Permite jugar con la precisión milimétrica, giros rápidos de 180° y agilidad
 * 🎮 **Protocolos de Asistencia Compatibles:** Soporte nativo para perfiles **Xbox 360 (XInput)**, **Xbox One / Series** y **DualShock 4 (PlayStation)**.
 * ⌨️ **Mapeo Visual Completo:** Interfaz interactiva para mapear teclas físicas y botones de ratón directamente sobre las acciones de juego.
 * 🔒 **Autenticación y Perfiles en la Nube:** Sistema completo con Supabase Auth (correo/contraseña, Google OAuth, verificación de email y bonificación opcional de +3 días por teléfono móvil).
-* 📦 **Instalador de Drivers en 1 Clic (`aimcake_drivers.exe`):** Asistente automático que registra los componentes necesarios sin pasos técnicos complejos.
+* 📦 **Instalador Oficial para Windows (`aimcake_setup.exe`):** Asistente automático que instala la aplicación, el monitor del reloj y los drivers de mando a 1000 Hz.
 * 🌐 **Landing Page Integrada:** Interfaz comercial moderna, responsiva, con comparativa en vivo, telemetría y planes de suscripción.
 
 ---
@@ -56,7 +56,7 @@ aimcake/
 │   │   ├── DevicesView.tsx       # Detección y filtrado de teclados y ratones
 │   │   ├── ProfilesView.tsx      # Gestor de perfiles (importar/exportar JSON)
 │   │   ├── AccountView.tsx       # Gestión de cuenta, seguridad y teléfono
-│   │   ├── DownloadCard.tsx      # Área de descarga de aimcake_drivers.exe
+│   │   ├── DownloadCard.tsx      # Área de descarga de aimcake_setup.exe
 │   │   └── DesktopRequiredBanner # Aviso responsivo para pantallas móviles/tablets
 │   ├── hooks/                    # Hooks personalizados (useAuth, useLicense)
 │   ├── lib/                      # Modelos matemáticos (cinemática, curvas, teclas)
@@ -70,7 +70,7 @@ aimcake/
 │   └── functions/                # Edge Functions (emisión de licencias, pasarelas)
 ├── public/                       # Recursos estáticos
 │   ├── cake-icon.svg             # Logotipo oficial de AimCake
-│   └── downloads/                # Archivo ejecutable aimcake_drivers.exe
+│   └── downloads/                # Archivo ejecutable aimcake_setup.exe
 └── package.json                  # Dependencias y scripts de construcción
 ```
 
@@ -118,11 +118,11 @@ aimcake/
 
 ---
 
-## 🛠️ Instalación de Controladores
-
-Para que Windows reconozca el mando virtual, descarga y ejecuta el instalador oficial de drivers:
-* **Archivo:** `public/downloads/aimcake_drivers.exe`
-* **Instalación:** Ejecutar como administrador, presionar *Instalar* y en menos de 30 segundos estará listo.
+## 🛠️ Instalación para Windows
+ 
+Para jugar con Aim Assist y conectar tu PC a la plataforma, descarga y ejecuta el instalador oficial:
+* **Archivo:** `public/downloads/aimcake_setup.exe`
+* **Instalación:** Ejecutar como administrador, presionar *Instalar* y en menos de 30 segundos la app estará lista y activa junto al reloj de Windows.
 
 ---
 

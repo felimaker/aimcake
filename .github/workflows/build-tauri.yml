@@ -1,0 +1,57 @@
+name: "Compilar Instalador AimCake (Windows)"
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - 'README.md'
+      - 'DOC.md'
+
+jobs:
+  build-tauri:
+    permissions:
+      contents: write
+    runs-on: windows-latest
+
+    steps:
+      - name: Clonar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Configurar Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Cache de dependencias de Rust
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: Instalar dependencias del frontend
+        run: npm install
+
+      - name: Compilar instalador con Tauri v2
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: v__VERSION__
+          releaseName: 'AimCake v__VERSION__'
+          releaseBody: 'Instalador oficial de AimCake para Windows 10/11 con soporte 1000 Hz y ViGEmBus.'
+          releaseDraft: false
+          prerelease: false
+
+      - name: Subir instalador como artefacto de descarga
+        uses: actions/upload-artifact@v4
+        with:
+          name: AimCake-Windows-Setup
+          path: src-tauri/target/release/bundle/nsis/*.exe
+          if-no-files-found: warn
